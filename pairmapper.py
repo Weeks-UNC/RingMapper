@@ -25,8 +25,7 @@ import numpy as np
 
 from ringmapper import RINGexperiment
 from ReactivityProfile import ReactivityProfile
-from arcPlot import ArcPlot
-
+#from arcPlot import ArcPlot
 
 
 
@@ -611,10 +610,10 @@ if __name__ == '__main__':
 
 
     # make plot
-    try:
-        pairs.plot('{}-pairmapper.pdf'.format(args.out))
-    except:
-        print("Was unable to generate plot")
+    #try:
+    #    pairs.plot('{}-pairmapper.pdf'.format(args.out))
+    #except:
+    #    print("Was unable to generate plot")
 
 
        

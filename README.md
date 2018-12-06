@@ -5,6 +5,7 @@ Code for performing RING-MaP and PAIR-MaP analysis
 
 -------------------------------------------------------------
 Copywrite 2018 Anthony Mustoe
+
 This project is licensed under the terms of the MIT license
 
 Contact: amustoe@unc.edu
@@ -48,9 +49,6 @@ Dependencies
 ------------
 - python 2.7, numpy
 - cython (developed using v0.23)
-- matplotlib (for arcPlot)
-- RNAtools2
-
 
 
 Example workflow
