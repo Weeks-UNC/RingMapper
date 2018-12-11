@@ -51,7 +51,7 @@ class PairMapper(object):
         self.secondary = None
 
         # compute list of complementary correlated pairs 
-        self.computeComplementaryCorrs(chi2cut, maxGU=maxGU, maxNC=maxNC)
+        self.complementarycorrs = self.computeComplementaryCorrs(chi2cut, maxGU=maxGU, maxNC=maxNC)
        
         self.computePrimaryCorrs(primary_reactivity, primary_zscore)
         self.computeSecondaryCorrs(secondary_reactivity, secondary_zscore)
@@ -230,8 +230,7 @@ class PairMapper(object):
                     self.parent.sequence[j:j+self.parent.window], maxGU=maxGU, maxNC=maxNC):
                 compcorrs.append((i,j))
 
-
-        self.complementarycorrs = compcorrs
+        return compcorrs
 
 
 
@@ -277,12 +276,15 @@ class PairMapper(object):
 
 
 
-    def writePairBonusFile(self, filepath, scale=0.5, intercept=0):
+    def writePairBonusFile(self, filepath, chi2cut, maxNC=1, scale=0.5, intercept=0):
+        """Write matrix of pairing bonuses for use in RNAstructure folding"""
 
         seqlen = len(self.parent.sequence)
         pairmat = np.zeros((seqlen, seqlen))
+ 
+        corrs = self.computeComplementaryCorrs(chi2cut, maxNC=maxNC)
         
-        for i,j in self.complementarycorrs:
+        for i,j in corrs:
             
             meanz = self.parent.getMeanZ(i,j)  
             if meanz > 1:
@@ -606,7 +608,7 @@ if __name__ == '__main__':
     pairs.writePairs('{}-pairmap.txt'.format(args.out))
     
     # write out folding restraint matrix
-    pairs.writePairBonusFile('{}.bp'.format(args.out))
+    pairs.writePairBonusFile('{}.bp'.format(args.out), args.chisq_cut, maxNC=1)
 
 
     # make plot
