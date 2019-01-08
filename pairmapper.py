@@ -338,7 +338,7 @@ class PairMapper(object):
             for j in range(i+self.parent.corrbuffer, seqlen):
 
                 # convert to rate
-                if self.parent.ex_readarr[i,j] > depthcut:
+                if not comuts.mask[i,j] and self.parent.ex_readarr[i,j] > depthcut:
                     comuts[i,j] /= self.parent.ex_readarr[i,j] 
                     
                     # do background subtraction
