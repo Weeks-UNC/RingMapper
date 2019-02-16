@@ -12,8 +12,8 @@
 #   Lead developer: Anthony Mustoe
 #   Contributors: Nicole Lama, Steve Busan
 #   
-#   Version 4.2
-#   December 2018
+#   Version 4.3
+#   February 2019
 #
 ########################################################
 
@@ -75,27 +75,24 @@ def fillMatrices(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, int[
     cdef ssize_t endfile
     cdef char* line = NULL
     
-    
+    # mem alloc for read parsing and for loops   
     cdef READ r
     cdef int i, j, i_index
     
-
-    # set up variables needed for undersampling reads
-    # with default num_input_readlines=1, readidxArray will be created as empty array
-    cdef int num_input_readlines = 1 
-
-    if undersample > 0:
-        num_input_readlines = countReadLines(inputFile)
-        if undersample > num_input_readlines:
-            print('WARNING: Cannot undersample file {0}, which has only has {1} reads'.format(inputFile, num_input_readlines))
-            undersample = -1 # turn off undersampling
-            num_input_readlines = 1    # make readidxArray = [] to minimize memory footprint
-    
-    # create the readidxArray for undersampling; at default num_input_readlines=1, undersample=-1, this is empty
-    idxArray = np.random.choice(num_input_readlines, undersample, replace=False)
-    idxArray.sort()
-    cdef np.int64_t[:] readidxArray = idxArray
+    # mem alloc for undersampling index array 
+    cdef np.int32_t[:] readidxArray = np.zeros(max(0,undersample), dtype=np.int32)
     cdef int ridx = 0
+    cdef int sufficientreads = 0
+
+
+    # initialize undersample array if undersampling specified
+    if undersample > 0:
+        
+        sufficientreads = undersampleIndices(inputFile, fileformat, undersample, readidxArray)
+        
+        if sufficientreads < 1:
+            print('WARNING: Cannot undersample file {0}, which has only has {1} non-empty reads'.format(inputFile, -1*sufficientreads))
+            undersample = -1 # turn off undersampling
 
 
 
@@ -188,6 +185,7 @@ def fillMatrices(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, int[
     return linenum, readreads
         
 
+
 ##################################################################################
 
 cdef READ parseLine(char* line, int fileformat):
@@ -255,19 +253,97 @@ cdef READ parseLine(char* line, int fileformat):
     return r
 
 
+
+##################################################################################
+
+
+cdef int undersampleIndices(str inputFile, int fileformat, int undersample, np.int32_t[:] readidxArray):
+    """This function will fill readidxArray with valid reads from inputFile
+    
+    inputFile = mutstring file
+    fileformat   =  Shapemapper mut string format (1,2,3)
+    undersample  =  undersample this number of reads (without replacement) from read file
+                    Default is -1, which reads all lines
+    readidxArray = preallocated array with size = undersample
+
+    inputFile is checked to make sure there are sufficient valid reads to sample    
+    Return 1 if sufficient reads (and undersampling performed)
+    Return <0 if not sufficient reads (actual value is -1 * validReads)
+    """
+
+
+    # mem alloc for reading the file using c
+    cdef FILE* cfile
+    cdef size_t lsize = 0
+    cdef ssize_t endfile
+    cdef char* line = NULL
+    cdef READ r
+    cdef int i    
+
+    cdef int linenum = -1    
+    cdef int validlines_idx = 0 
+ 
+    # init the numpy array to hold valid line idxes    
+    cdef int filelength = countReadLines(inputFile)
+
+    validlines = np.zeros(filelength, dtype=np.int32)
+
+
+    cfile = fopen(inputFile, "r")
+    if cfile == NULL:
+        raise IOError(2, "No such file or directory: '{0}'".format(inputFile))
+    
+
+    # iterate through lines
+    while True:
         
+        linenum += 1 
+        
+        # get the line of text using c-function
+        endfile = getline(&line, &lsize, cfile)
+        if endfile == -1:
+            break
+        
+        # parse line and check whether it is valid       
+        r = parseLine(line, fileformat)
+        if r.read != NULL:
+            validlines[validlines_idx] = linenum
+            validlines_idx += 1                      
+    
+    # check to make sure there are sufficient valid reads to undersample
+    if validlines_idx < undersample:
+        return -validlines_idx
+    
+    # resize the validlines array to exact size
+    validlines = validlines[:validlines_idx]   
+    
+    # randomly undersample without replacement and sort
+    idxArray = np.random.choice(validlines, undersample, replace=False)
+    idxArray.sort()
+
+    # assign readidxArray    
+    for i in range(undersample):    
+        readidxArray[i] = idxArray[i]
+    
+    return 1    
+
+
+
+
 ##################################################################################
 
 cdef int countReadLines(str inputFile):
+    # Return the number of lines in inputFile
     
     cdef str line
     cdef int nlines = 0
-
+    
     with open(inputFile) as inp:
         for line in inp:
             nlines += 1
     
     return nlines
+
 
 ##################################################################################
 

@@ -302,7 +302,7 @@ class PairMapper(object):
 
 
 
-    def checkMutationRates(self, depthcut=50000, primary_reactivity = 0.2):
+    def checkMutationRates(self, depthcut=10000, primary_reactivity = 0.2):
         """Check comutation rates to make sure they are high enough to accurately measure pairs"""
         
         seqlen = self.parent.ex_readarr.shape[0]
