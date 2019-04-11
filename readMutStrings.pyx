@@ -183,7 +183,165 @@ def fillMatrices(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, int[
 
 
     return linenum, readreads
+ 
+
+
+       
+##################################################################################
+
+def fillIndependentProbArrays(str inputFile, int[:,::1] countArray,
+                              int window, int mincoverage, int fileformat, int undersample):
+
+    """inputFile = path to the classified mutations files
+    totalCount   =  Nx8 array containing modification countss
+    window       =  window >=1 over which to compute correlations
+    mincoverage  =  exclude reads with coverage less than this 
+                    (i.e. must have at least this many positions as 1 in read string)
+    
+    fileformat   =  Shapemapper mut string format (1,2,3)
+    undersample  =  undersample this number of reads (without replacement) from read file
+                    Default is -1, which reads all lines
+    
+    returns (totreads, readreads)
+    """
+    
+    # establish counting dimensions and initialize internal countArray    
+    cdef int maxindex = countArray.shape[0]
+    cdef int maxcount = countArray.shape[1]/2-1
+    cdef int[:,:] workingCountArray = np.zeros((maxindex, 2*(maxcount+2)), dtype=np.int32)
+
+
+    # working arrays storing read events
+    # first position contains element counter
+    cdef np.int32_t[:] readnts = np.zeros(maxindex+1, dtype=np.int32)
+    cdef np.int32_t[:] mutnts  = np.zeros(maxindex+1, dtype=np.int32)
+    
+
+    # mem alloc for reading the file using c
+    cdef FILE* cfile
+    cdef size_t lsize = 0
+    cdef ssize_t endfile
+    cdef char* line = NULL
+    
+    # mem alloc for read parsing and for loops   
+    cdef READ r
+    cdef int i, j, i_index, totalmuts
+    
+
+    # mem alloc for undersampling index array 
+    cdef np.int32_t[:] readidxArray = np.zeros(max(0,undersample), dtype=np.int32)
+    cdef int ridx = 0
+    cdef int sufficientreads = 0
+
+
+    # initialize undersample array if undersampling specified
+    if undersample > 0:
         
+        sufficientreads = undersampleIndices(inputFile, fileformat, undersample, readidxArray)
+        
+        if sufficientreads < 1:
+            print('WARNING: Cannot undersample file {0}, which has only has {1} non-empty reads'.format(inputFile, -1*sufficientreads))
+            undersample = -1 # turn off undersampling
+
+
+
+    # open the file
+    cfile = fopen(inputFile, "r")
+    if cfile == NULL:
+        raise IOError(2, "No such file or directory: '{0}'".format(inputFile))
+
+
+    cdef int linenum = -1
+    cdef int readreads = 0
+    cdef int skipped_reads = 0
+
+    # iterate through lines
+    while True:
+        
+        linenum += 1 
+        
+        # get the line of text using c-function
+        endfile = getline(&line, &lsize, cfile)
+        if endfile == -1:
+            break
+        
+
+        # logic to randomly undersample reads (if specified)
+        if undersample > 0:
+            if ridx >= undersample:
+                break
+            elif readidxArray[ridx] == linenum:
+                ridx += 1
+            else:
+                continue
+            
+
+
+        # parse line into individual values, reset and fill readnts/mutnts
+        try:
+            r = parseLine(line, fileformat)
+            if r.read == NULL:
+                raise IndexError()
+            elif r.stop >= maxindex:
+                print "Skipping line {0} with out-of-array-bounds = ({1}, {2})".format(linenum, r.start, r.stop)
+                continue
+            
+            fillReadMut(readnts, mutnts, r, window, mincoverage)
+ 
+        except:
+            skipped_reads += 1
+            #print "Skipping incorrectly formatted line {0}".format(linenum)
+            continue
+        
+
+        # check if read was read, and if so, increment counter
+        if readnts[0]>1:
+            readreads += 1
+        
+        
+        # compute totalmuts
+        totalmuts = 0
+        for i in xrange( r.stop - r.start + 1):
+            totalmuts += r.muts[i]-48 # will be 0 if no mut, 1 if mut
+        
+
+        if totalmuts > maxcount+1:
+            totalmuts = maxcount+1
+        
+
+        for i in xrange(1, readnts[0]):
+            workingCountArray[readnts[i], totalmuts] +=1
+
+        for i in xrange(1, mutnts[0]):
+        
+            # need to subtract since mutated
+            workingCountArray[mutnts[i], totalmuts] -= 1
+            
+            # now need to add to mutated
+            workingCountArray[mutnts[i], maxcount+1+totalmuts] += 1
+            
+
+    fclose(cfile)
+
+
+    if skipped_reads > 0:
+        print("skipped {} lines".format(skipped_reads))
+
+    
+    # transfer workingCountArray to countArray
+    countArray[:,:maxcount+1] = workingCountArray[:,:maxcount+1]
+    for i in xrange(maxindex+1):
+        countArray[i,maxcount] += workingCountArray[i,maxcount+1]
+        
+    countArray[:,maxcount+1:] = workingCountArray[:,maxcount+2:2*maxcount+3]
+    # note don't need to transfer the last column, since will always be 0
+
+
+    return linenum, readreads
+ 
+
+
+
 
 
 ##################################################################################
@@ -385,7 +543,6 @@ cdef int fillReadMut(np.int32_t[:] readnts, np.int32_t[:] mutnts, READ r, int wi
     cdef int rcount = 0
     cdef int mcount = 0
     cdef int validpos = 0
-
 
     # reset index of arrays
     mutnts[0] = 0
