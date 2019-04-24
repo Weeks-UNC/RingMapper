@@ -45,7 +45,7 @@ class RINGexperiment(object):
         if fasta is not None:
             self.sequence = self.readFasta(fasta, verbal=verbal)
             # set arraysize to sequence length, plus a little padding to guard against indexErrors
-            self.arraysize = len(self.sequence)+1
+            self.arraysize = len(self.sequence)
         else:
             self.sequence = None
             self.arraysize = arraysize

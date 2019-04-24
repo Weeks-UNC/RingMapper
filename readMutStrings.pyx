@@ -532,8 +532,10 @@ cdef int fillReadMut(np.int32_t[:] readnts, np.int32_t[:] mutnts, READ r, int wi
     #
     # --> This code uses option 3
 
-
+    
     cdef int step = window-1
+    
+    cdef int endseq = len(readnts)-1-window
 
     cdef int i,j
 
@@ -624,6 +626,9 @@ cdef int fillReadMut(np.int32_t[:] readnts, np.int32_t[:] mutnts, READ r, int wi
     # i is carried over from end of above for loop
     for j in xrange(1, window):
         
+        if r.start+i+j > endseq:
+            break
+
         rcount -= r.read[i+j-1]-48
         mcount -= r.muts[i+j-1]-48
 

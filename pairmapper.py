@@ -44,7 +44,7 @@ class PairMapper(object):
         self.profile = profile
 
         # first check whether filters are passed
-        self.comut_rates = self.checkMutationRates(primary_reactivity = primary_reactivity)
+        self.passfilter = self.checkMutationRates(primary_reactivity = primary_reactivity)
         
         self.complementarycorrs = None
         self.primary = None
@@ -371,8 +371,7 @@ class PairMapper(object):
 
         median_unreact_comut = np.ma.median(comuts)
         median_unreact_count = comuts.count()
-        
-        print("{0:.2e} ({1}); {2:.2e} ({3})".format(median_comut, median_count, median_unreact_comut, median_unreact_count))
+       
 
         if median_comut < 5e-4 or median_unreact_comut < 1e-4:
             sys.stdout.write('******************************\n')
@@ -381,8 +380,14 @@ class PairMapper(object):
             sys.stdout.write('\tMedian for unreactive nts = {0:.2e}  ({1} pairs)\n'.format(median_unreact_comut, median_unreact_count))
             sys.stdout.write('PAIR-MaP data likely untrustworthy\n') 
 
+            return False
 
-        return median_comut, median_unreact_comut
+        else:
+            sys.stdout.write("Reactivity rate quality checks passed\n")
+            sys.stdout.write('\tMedian for all nts = {0:.2e}  ({1} pairs)\n'.format(median_comut, median_count))
+            sys.stdout.write('\tMedian for unreactive nts = {0:.2e}  ({1} pairs)\n'.format(median_unreact_comut, median_unreact_count))
+            return True
+
 
 
     
@@ -609,11 +614,13 @@ if __name__ == '__main__':
                        secondary_zscore=args.secondary_zscore)
     
 
-    # write out pairmap data
-    pairs.writePairs('{}-pairmap.txt'.format(args.out))
+    if pairs.passfilter:
+
+        # write out pairmap data
+        pairs.writePairs('{}-pairmap.txt'.format(args.out))
     
-    # write out folding restraint matrix
-    pairs.writePairBonusFile('{}.bp'.format(args.out), args.chisq_cut, maxNC=1)
+        # write out folding restraint matrix
+        pairs.writePairBonusFile('{}.bp'.format(args.out), args.chisq_cut, maxNC=1)
 
 
     # make plot
