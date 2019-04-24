@@ -198,6 +198,11 @@ class PairMapper(object):
 
         def isComplement(seq1, seq2, maxGU, maxNC):
             counts = [0,0,0]
+
+            # Not considered complementary if different lengths
+            if len(seq1) != len(seq2):
+                return False
+            
             for i in range(len(seq1)):
                 pair = seq1[i] + seq2[-(i+1)]
 
