@@ -44,7 +44,12 @@ class ReactivityProfile(object):
         self.rawerror = None
         self.backprofile = None
         self.backerror = None
-    
+        self.normprofile = None
+        self.normerror = None
+        self.subprofile = None
+        self.suberror = None
+        
+
         # set the default normMethod
         self.normMethod = self.normBox
 
@@ -482,13 +487,16 @@ class ReactivityProfile(object):
         
         # initialize the profile and error array
         nprof = np.copy(prof)
-
+        
         with np.errstate(invalid='ignore'):
-            nerr = np.zeros(err.shape)
-            mask = prof > 0
-            nerr[mask] = (err[mask]/prof[mask])**2
+            if err is not None:
+                nerr = np.zeros(err.shape)
+                mask = prof > 0
+                nerr[mask] = (err[mask]/prof[mask])**2
+            else:
+                nerr = None
         
-        
+
         normfactors = {}
 
         if byNT:
@@ -499,13 +507,14 @@ class ReactivityProfile(object):
                 seq = self.sequence==i
                 nprof[seq] /= nfac
                 
-                nerr[seq] += (normerr/nfac)**2
-                nerr[seq] = np.abs(nprof[seq])*np.sqrt(nerr[seq]) 
+                if nerr is not None:
+                    nerr[seq] += (normerr/nfac)**2
+                    nerr[seq] = np.abs(nprof[seq])*np.sqrt(nerr[seq]) 
                 
                 normfactors[i] = nfac
 
-        elif DMS:
 
+        elif DMS:
 
             acmask = (self.sequence == 'A') | (self.sequence=='C')
             ac_nfac, ac_nerr = self.norm90( nprof[acmask] )
@@ -517,11 +526,11 @@ class ReactivityProfile(object):
             nprof[acmask] /= ac_nfac
             nprof[gumask] /= gu_nfac
             
-            nerr[acmask] += (ac_nerr/ac_nfac)**2
-            nerr[acmask] = np.abs(nprof[acmask])*np.sqrt(nerr[acmask]) 
-            
-            nerr[gumask] += (gu_nerr/gu_nfac)**2
-            nerr[gumask] = np.abs(nprof[gumask])*np.sqrt(nerr[gumask]) 
+            if nerr is not None:
+                nerr[acmask] += (ac_nerr/ac_nfac)**2
+                nerr[acmask] = np.abs(nprof[acmask])*np.sqrt(nerr[acmask]) 
+                nerr[gumask] += (gu_nerr/gu_nfac)**2
+                nerr[gumask] = np.abs(nprof[gumask])*np.sqrt(nerr[gumask]) 
             
             normfactors['G'] = gu_nfac
             normfactors['U'] = gu_nfac
@@ -535,8 +544,9 @@ class ReactivityProfile(object):
             nprof /= normfac
 
             # compute the stderr, figuring in the fact that normalization has some error
-            nerr += (normerr/normfac)**2
-            nerr = np.abs(nprof)*np.sqrt(nerr)
+            if nerr is not None:
+                nerr += (normerr/normfac)**2
+                nerr = np.abs(nprof)*np.sqrt(nerr)
             
             normfactors['G'] = normfac
             normfactors['U'] = normfac
