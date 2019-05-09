@@ -252,9 +252,8 @@ class ReactivityProfile(object):
         arr = np.array(mdepth, dtype=float)
         self.backprofile[arr<1000] = np.nan
         self.backerror = np.sqrt(self.backprofile/arr)
-
-        self.subprofile, self.suberror = self.computeProfileDiff(self, 'back','raw') 
-         
+        
+        self.backgroundSubtract(normalize=False)
 
 
         with np.errstate(invalid='ignore'):
@@ -466,13 +465,14 @@ class ReactivityProfile(object):
         self.backprofile[arr<1000] = np.nan
         self.backerror = np.sqrt(self.backprofile/arr)
         
-        self.subprofile, self.suberror = self.computeProfileDiff(self, 'back','raw') 
-                
+        self.backgroundSubtract(normalize=False)
+
         with np.errstate(invalid='ignore'):
             mask = (self.backprofile>bg) | np.isnan(self.normprofile) | (self.normprofile<-10)
             self.subprofile[mask] = np.nan
             self.normprofile[mask] = np.nan
                               
+
 
     def normalize(self, DMS=False, byNT=False, **kwargs):
         """normalize the profile; overwrites values in normprofile"""
@@ -486,8 +486,9 @@ class ReactivityProfile(object):
         prof,err = self.profile(name, True)
         
         # initialize the profile and error array
-        nprof = np.copy(prof)
+        nprof = np.array(prof)
         
+
         with np.errstate(invalid='ignore'):
             if err is not None:
                 nerr = np.zeros(err.shape)
@@ -521,7 +522,6 @@ class ReactivityProfile(object):
 
             gumask = (self.sequence == 'G') | (self.sequence=='U')
             gu_nfac, gu_nerr = self.norm90( nprof[gumask] )
-            #gumask = (self.sequence == 'G') | (self.sequence=='U')
 
             nprof[acmask] /= ac_nfac
             nprof[gumask] /= gu_nfac
@@ -561,24 +561,43 @@ class ReactivityProfile(object):
 
 
 
-    def backgroundSubtract(self, filepath, **kwargs):
-        """background subtract the file from raw"""
+    def backgroundSubtract(self, normalize=True, filepath=None, **kwargs):
+        """Set subprofile
+        By default, will subtract 'back' from 'raw' profile
+        Alternatively, if 'back' is not set than can be provided via filepath"""
 
         
-        prof = ReactivityProfile(filepath, **kwargs)
-
-        if ( ( self.sequence is not None and not np.array_equal(prof.sequence, self.sequence)) 
-            or ( self.nts is not None and not np.array_equal(prof.nts, self.nts) ) ):
+        if self.rawprofile is None:
+            raise ValueError('rawprofile is None')
+        
+        if filepath is None and self.backprofile is None:
+            raise ValueError('backprofile is None and no alternative filepath is provided')
+        
+        
+        if filepath is not None:
             
-            sys.stderr.write('Background profile does not have the same sequence or nt numbering\n')
-        elif self.sequence is None:
-            self.sequence = prof.sequence
-            self.nts = prof.nts
-        
-        self.backprofile, self.backerror = prof.profile('raw', True)
-        self.subprofile, self.suberror = self.computeProfileDiff(prof, compname='raw', myname='raw')
+            if self.backprofile is not None:
+                print('Overiding backprofile with profile from:{0}'.format(filepath))
 
-        self.normalize(**kwargs)
+
+            prof = ReactivityProfile(filepath, **kwargs)
+
+            if ( ( self.sequence is not None and not np.array_equal(prof.sequence, self.sequence)) 
+                or ( self.nts is not None and not np.array_equal(prof.nts, self.nts) ) ):
+                sys.stderr.write('Background profile does not have the same sequence or nt numbering\n')
+        
+            elif self.sequence is None:
+                self.sequence = prof.sequence
+                self.nts = prof.nts
+        
+            self.backprofile, self.backerror = prof.profile('raw', True)
+
+
+        self.subprofile, self.suberror = self.computeProfileDiff(self, compname='back', myname='raw')
+        
+        if normalize:
+            self.normalize(**kwargs)
+
 
 
     def computeProfileDiff(self, profile, compname=None, myname=None):
@@ -681,6 +700,7 @@ class ReactivityProfile(object):
     def norm90(self, data):
         
         finitedata = data[ np.isfinite(data) ]
+        
         bnds = np.percentile(finitedata, [90., 99.]) # 99
         mask = (finitedata>= bnds[0]) & (finitedata<=bnds[1])
         
