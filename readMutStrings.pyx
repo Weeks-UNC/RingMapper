@@ -26,18 +26,6 @@ import numpy as np
 cimport numpy as np
 
 
-
-###########################################################################
-# Define READ object
-
-cdef struct READ:
-    int start
-    int stop
-    char* read
-    char* muts
-    char* qual
-
-
 ###########################################################################
 #
 # Fill mutation matrices
@@ -65,8 +53,8 @@ def fillMatrices(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, int[
 
     # working arrays storing read events
     # first position contains element counter
-    cdef np.int32_t[:] readnts = np.zeros(maxindex+1, dtype=np.int32)
-    cdef np.int32_t[:] mutnts  = np.zeros(maxindex+1, dtype=np.int32)
+    cdef int[:] readnts = np.zeros(maxindex+1, dtype=np.int32)
+    cdef int[:] mutnts  = np.zeros(maxindex+1, dtype=np.int32)
     
 
     # mem alloc for reading the file using c
@@ -80,7 +68,7 @@ def fillMatrices(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, int[
     cdef int i, j, i_index
     
     # mem alloc for undersampling index array 
-    cdef np.int32_t[:] readidxArray = np.zeros(max(0,undersample), dtype=np.int32)
+    cdef int[:] readidxArray = np.zeros(max(0,undersample), dtype=np.int32)
     cdef int ridx = 0
     cdef int sufficientreads = 0
 
@@ -213,8 +201,8 @@ def fillIndependentProbArrays(str inputFile, int[:,::1] countArray,
 
     # working arrays storing read events
     # first position contains element counter
-    cdef np.int32_t[:] readnts = np.zeros(maxindex+1, dtype=np.int32)
-    cdef np.int32_t[:] mutnts  = np.zeros(maxindex+1, dtype=np.int32)
+    cdef int[:] readnts = np.zeros(maxindex+1, dtype=np.int32)
+    cdef int[:] mutnts  = np.zeros(maxindex+1, dtype=np.int32)
     
 
     # mem alloc for reading the file using c
@@ -229,7 +217,7 @@ def fillIndependentProbArrays(str inputFile, int[:,::1] countArray,
     
 
     # mem alloc for undersampling index array 
-    cdef np.int32_t[:] readidxArray = np.zeros(max(0,undersample), dtype=np.int32)
+    cdef int[:] readidxArray = np.zeros(max(0,undersample), dtype=np.int32)
     cdef int ridx = 0
     cdef int sufficientreads = 0
 
@@ -415,7 +403,7 @@ cdef READ parseLine(char* line, int fileformat):
 ##################################################################################
 
 
-cdef int undersampleIndices(str inputFile, int fileformat, int undersample, np.int32_t[:] readidxArray):
+cdef int undersampleIndices(str inputFile, int fileformat, int undersample, int[:] readidxArray):
     """This function will fill readidxArray with valid reads from inputFile
     
     inputFile = mutstring file
@@ -506,7 +494,7 @@ cdef int countReadLines(str inputFile):
 ##################################################################################
 
 
-cdef int fillReadMut(np.int32_t[:] readnts, np.int32_t[:] mutnts, READ r, int window, int mincoverage) except -1:
+cdef void fillReadMut(int[:] readnts, int[:] mutnts, READ r, int window, int mincoverage):
     # accessory function for fillMatrices
     # parse the read for mut events
     # readnts and mutnts contain seq indices of valid reads and muts, respectively
@@ -552,7 +540,7 @@ cdef int fillReadMut(np.int32_t[:] readnts, np.int32_t[:] mutnts, READ r, int wi
     
     # if read is too short, abort   
     if r.stop-r.start+1 < mincoverage:
-        return 1
+        return
     
 
     # Handle the beginning of the read
@@ -652,7 +640,6 @@ cdef int fillReadMut(np.int32_t[:] readnts, np.int32_t[:] mutnts, READ r, int wi
     mutnts[0] = mutindex  # mutindex is +1 of last filled array position
     readnts[0] = readindex
     
-    return 1
 
 
     

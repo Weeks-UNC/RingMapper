@@ -10,11 +10,12 @@
 
 
 from distutils.core import setup
+from distutils.extension import Extension
 from Cython.Build import cythonize
 import numpy
 
-setup(
-    name = "readMutStrings",
-    ext_modules = cythonize("readMutStrings.pyx"),
-    include_dirs = [numpy.get_include()]
-)
+ext = Extension('readMutStrings', 
+                sources=['readMutStrings.pyx'], 
+                include_dirs = [numpy.get_include()])
+
+setup(name = 'readMutStrings', ext_modules = cythonize(ext))
