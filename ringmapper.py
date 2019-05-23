@@ -511,7 +511,7 @@ class RINGexperiment(object):
 
 
     def computeCorrelationMatrix(self, corrbuffer=5, mindepth=10000, 
-                                 mincount=10, ignorents = [], highbgrate=0.02, 
+                                 mincount=50, ignorents = [], highbgrate=0.02, 
                                  highbgcorr=10.83, verbal=True):
         """Compute the correlation matrices and mask invalid entries
         corrbuffer     = buffer to keep between correlations (i.e. minimum correlation distance)

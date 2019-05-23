@@ -136,36 +136,13 @@ def fillMatrices(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, int[
         if readnts[0]>1:
             readreads += 1
         
+        # finally increment the read and mutation arrays
+        incrementArrays(read_arr, comut_arr, inotj_arr, readnts, mutnts)
 
-        # fill the read count matrix; first element of readnts is +1 of last index
-        for i in xrange(1, readnts[0]):
-            i_index = readnts[i]
-            for j in xrange(i, readnts[0]):
-                read_arr[ i_index, readnts[j] ] += 1
-        
-        
-        # fill in the mut matrices; first element of mutnts is +1 of last index
-        for i in xrange(1, mutnts[0]):
-        
-            i_index = mutnts[i]
-            
-            for j in xrange(i, mutnts[0]):
-                comut_arr[ i_index, mutnts[j] ] += 1
-
-
-            # fill in inotj
-            # Note this loop overcounts for j=mutated
-            # Diagonal is not used, so don't worry about i=j case
-            for j in xrange(1, readnts[0]): 
-                inotj_arr[ i_index, readnts[j] ] += 1
-
-            # correct for the over addition in inotj in above loop
-            for j in xrange(1, mutnts[0]):
-                inotj_arr[ i_index, mutnts[j] ] -= 1
-        
 
     fclose(cfile)
-    
+ 
+
     if skipped_reads > 0:
         print("skipped {} lines".format(skipped_reads))
 
@@ -174,7 +151,45 @@ def fillMatrices(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, int[
  
 
 
+##################################################################################
+
+cdef void incrementArrays(int[:,::1] read_arr, int[:,::1] comut_arr, int[:,::1] inotj_arr, 
+                          int[:] readnts, int[:] mutnts):
+    """Increment read_arr, comut_arr, and inotj_arr based on readnts and mutnts"""
+
+    cdef int i, j, i_index
+    
+    # increment the read count matrix; first element of readnts is +1 of last index
+    for i in xrange(1, readnts[0]):
+        i_index = readnts[i]
+        for j in xrange(i, readnts[0]):
+            read_arr[ i_index, readnts[j] ] += 1
+    
+
+    # increment the mut matrices; first element of mutnts is +1 of last index
+    for i in xrange(1, mutnts[0]):
+        
+        i_index = mutnts[i]
+        
+        # increment comut
+        for j in xrange(i, mutnts[0]):
+            comut_arr[ i_index, mutnts[j] ] += 1
+
+        # increment inotj
+        # Note this loop overcounts for j=mutated
+        # Diagonal is not used, so don't worry about i=j case
+        for j in xrange(1, readnts[0]): 
+            inotj_arr[ i_index, readnts[j] ] += 1
+
+        # correct for the over addition in inotj in above loop
+        for j in xrange(1, mutnts[0]):
+            inotj_arr[ i_index, mutnts[j] ] -= 1
+        
+
+
        
+
+
 ##################################################################################
 
 def fillIndependentProbArrays(str inputFile, int[:,::1] countArray,
@@ -290,7 +305,7 @@ def fillIndependentProbArrays(str inputFile, int[:,::1] countArray,
         # compute totalmuts
         totalmuts = 0
         for i in xrange( r.stop - r.start + 1):
-            totalmuts += r.muts[i]-48 # will be 0 if no mut, 1 if mut
+            totalmuts += r.muts[i]-r.subcode # will be 0 if no mut, 1 if mut
         
 
         if totalmuts > maxcount+1:
@@ -341,6 +356,10 @@ cdef READ parseLine(char* line, int fileformat):
 
     cdef READ r
     cdef int i
+    
+    # set subcode to 48 indicating that read/muts of READ are unicode char*
+    # 48 = '0' and 49 = '1'
+    r.subcode = 48
 
     cdef int leadersize
     if fileformat==3:
@@ -360,7 +379,7 @@ cdef READ parseLine(char* line, int fileformat):
     for i in xrange(leadersize):
         token = strsep(&running, " \t")
     
-   
+
     while token:
         
         if tokindex == 1:
@@ -523,7 +542,7 @@ cdef void fillReadMut(int[:] readnts, int[:] mutnts, READ r, int window, int min
     
     cdef int step = window-1
     
-    cdef int endseq = len(readnts)-1-window
+    cdef int endseq = readnts.shape[0]-1-window
 
     cdef int i,j
 
@@ -559,8 +578,8 @@ cdef void fillReadMut(int[:] readnts, int[:] mutnts, READ r, int window, int min
         
         # tabulate reads/muts for the window extending into the read
         for j in xrange(window-i):
-            rcount += r.read[j]-48 # '0' = unicode 48; '1' = 49
-            mcount += r.muts[j]-48
+            rcount += r.read[j]-r.subcode 
+            mcount += r.muts[j]-r.subcode
         
         # add positions
         if rcount and mcount:
@@ -579,20 +598,20 @@ cdef void fillReadMut(int[:] readnts, int[:] mutnts, READ r, int window, int min
     rcount = 0
     mcount = 0
     for i in xrange(step):
-        rcount += r.read[i]-48  # '0' = unicode 48; '1' = 49
-        mcount += r.muts[i]-48
-        validpos += r.read[i]-48
+        rcount += r.read[i]-r.subcode
+        mcount += r.muts[i]-r.subcode
+        validpos += r.read[i]-r.subcode
     
 
     for i in xrange( r.stop - r.start + 1 - step):
         
         if i>0:
-            rcount -= r.read[i-1]-48
-            mcount -= r.muts[i-1]-48
+            rcount -= r.read[i-1]-r.subcode
+            mcount -= r.muts[i-1]-r.subcode
 
-        rcount += r.read[i+step]-48
-        mcount += r.muts[i+step]-48
-        validpos += r.read[i+step]-48
+        rcount += r.read[i+step]-r.subcode
+        mcount += r.muts[i+step]-r.subcode
+        validpos += r.read[i+step]-r.subcode
         
         # this will count any window with at least one mutation
         if rcount and mcount:
@@ -617,8 +636,8 @@ cdef void fillReadMut(int[:] readnts, int[:] mutnts, READ r, int window, int min
         if r.start+i+j > endseq:
             break
 
-        rcount -= r.read[i+j-1]-48
-        mcount -= r.muts[i+j-1]-48
+        rcount -= r.read[i+j-1]-r.subcode
+        mcount -= r.muts[i+j-1]-r.subcode
 
         if rcount and mcount:
             mutnts[mutindex] = r.start+i+j
