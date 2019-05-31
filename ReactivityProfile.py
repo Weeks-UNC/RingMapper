@@ -477,7 +477,7 @@ class ReactivityProfile(object):
     def normalize(self, DMS=False, byNT=False, **kwargs):
         """normalize the profile; overwrites values in normprofile"""
 
-        if hasattr(self, 'subprofile'):
+        if self.subprofile is not None:
             name = 'sub'
         else:
             name = 'raw'
