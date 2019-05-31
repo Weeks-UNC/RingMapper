@@ -191,7 +191,6 @@ class RINGexperiment(object):
                 else:
                     fileformat = 1
                 
-            print('Input file format = {}'.format(fileformat))
             return fileformat
 
 
