@@ -32,7 +32,7 @@ class RINGexperiment(object):
     """
 
     def __init__(self, fasta = None, exfile=None, bgfile=None, arraysize=1000, 
-                 corrtype = 'mi', verbal=False, **kwargs):
+                 corrtype = 'g', verbal=False, **kwargs):
         """
         fasta = fasta file of the sequence being analyzed
         exfile = datafile containing experiment data
@@ -100,6 +100,15 @@ class RINGexperiment(object):
             self.correlationfunc = self._mistatistic
             #self.significancefunc = self._mistatistic
             if verbal: print("Using APC corrected G-test correlation metric")
+        
+        elif corrtype == 'mi':
+            self.correlationfunc = self._mutualinformation
+            if verbal: print("Using normalized MI correlation metric")
+
+
+        elif corrtype == 'nmi':
+            self.correlationfunc = self._norm_mutualinformation
+            if verbal: print("Using normalized MI correlation metric")
 
         else:
             raise ValueError("Unrecognized correlation metric : {0}".format(corrtype))
@@ -416,6 +425,21 @@ class RINGexperiment(object):
         """
         return 2*n*self._mutualinformation(n,b,c,d)
 
+    
+    def _norm_mutualinformation(self, n, b, c, d):
+
+        mi = self._mutualinformation(n,b,c,d)
+    
+        bf = float(b)
+        df = float(d)
+        cf = float(c)
+        af = n-bf-c-df
+
+        hx = -1*( (af+bf)*np.log(af+bf) + (cf+df)*np.log(cf+df) - n*np.log(n) ) / n 
+        hy = -1*( (af+cf)*np.log(af+cf) + (bf+df)*np.log(bf+df) - n*np.log(n) ) / n
+
+        return mi / np.sqrt(hx*hy)
+
 
 
     def correlationsign(self,i,j, prefix='ex'):
@@ -545,8 +569,8 @@ class RINGexperiment(object):
         # perform quality control using bg arrays, if available
         if self.bg_readarr is not None:
             
-            # hard coded bg-depth=10000 and mincount=5
-            self._correlationMatrix('bg', self.corrbuffer, 10000, 5)
+            # hard coded bg-depth=10000 and mincount=25
+            self._correlationMatrix('bg', self.corrbuffer, 10000, 20)
             
 
             # Mask out nt columns that have high bg mutation rates
@@ -700,11 +724,22 @@ class RINGexperiment(object):
             np.savetxt('{0}_{1}.mat'.format(outprefix, name), matrix, delimiter=" ", fmt="%.6e")
  
         
+    def readDataMatrices(self, prefix):
+        
+        for a in ('readarr', 'comutarr', 'inotjarr'):
+            setattr(self, 'ex_'+a, np.loadtxt('{0}_ex_{1}.mat'.format(prefix, a)))
+
+        try:
+            for a in ('readarr', 'comutarr', 'inotjarr'):
+                setattr(self, 'bg_'+a, np.loadtxt('{0}_bg_{1}.mat'.format(prefix, a)))
+        except IOError:
+            print('WARNING: no bg matrices found for {0}'.format(prefix))
 
 
+        
 
 
-###############################################################################
+    ###############################################################################
 
 
 
