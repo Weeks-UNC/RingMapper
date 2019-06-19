@@ -313,7 +313,7 @@ class PairMapper(object):
         seqlen = self.parent.ex_readarr.shape[0]
         
         # initiate the masked array
-        comuts = np.ma.masked_array(self.parent.ex_comutarr, dtype=np.float64)
+        comuts = np.ma.masked_array(self.parent.ex_comutarr, copy=True, dtype=np.float64)
         
         # mask out the lower diagonal (which is void of info)
         comuts[np.tril_indices(seqlen)] = np.ma.masked
