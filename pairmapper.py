@@ -25,8 +25,6 @@ import numpy as np
 
 from ringmapper import RINGexperiment
 from ReactivityProfile import ReactivityProfile
-#from arcPlot import ArcPlot
-
 
 
 class PairMapper(object):
@@ -60,15 +58,16 @@ class PairMapper(object):
 
     def computePrimaryCorrs(self, primary_reactivity, primary_zscore):
         """Compute primary pair signals"""
-
+        
         corrs = self.getStrongest()
-
+        
         # now need to filter by reactivity 
         corrs = self.filterReactive(corrs, primary_reactivity)
 
         # filter by zave
         corrs = self.filterZscore(corrs, primary_zscore)
-    
+        
+
         self.primary = corrs
 
     
@@ -121,6 +120,8 @@ class PairMapper(object):
 
     def getStrongest(self):
         """Return non-conflicting strongest correlations"""
+        
+        print self.complementarycorrs
 
         # get list of strongest correlation at each nt
         corrdict = {}
@@ -134,7 +135,9 @@ class PairMapper(object):
                 corrdict[j] = (i,j, self.parent.ex_correlations[i,j])
             elif self.parent.ex_correlations[i,j] > corrdict[j][2]:
                 corrdict[j] = (i,j, self.parent.ex_correlations[i,j])
-       
+        
+        print corrdict[32]
+        print corrdict[50]
 
         # eliminate correlations that are not mutually strongest
         ntkeys = corrdict.keys()
@@ -148,7 +151,8 @@ class PairMapper(object):
                 del corrdict[k]
             elif k == j and (i not in corrdict or corrdict[i] != corrdict[k]):
                 del corrdict[k]
-
+        
+        print corrdict[32]==corrdict[50]
 
         # function to test if two correlations are parallel
         def parallel(c1, c2):
@@ -172,6 +176,9 @@ class PairMapper(object):
                 
                 if k+i in corrdict and not parallel(corrdict[k], corrdict[k+i]) \
                                    and corrdict[k+i][2] > corrdict[k][2]:
+
+                    if k==32:
+                        print k+i, corrdict[k+i]
                     keep = False
                     break
                 
@@ -179,6 +186,8 @@ class PairMapper(object):
                 j = corrdict[k][1]
                 if j+i in corrdict and not parallel(corrdict[k], corrdict[j+i]) \
                                    and corrdict[j+i][2] > corrdict[k][2]:
+                    if k==32:
+                        print k+i, corrdict[k+i]
                     keep = False
                     break
 
@@ -227,6 +236,7 @@ class PairMapper(object):
         # get all positive correlations 
         corrs = self.parent.significantCorrelations('ex', chi2cut, sign=1)
         
+
         compcorrs = []
         
         for i,j in corrs:
@@ -281,7 +291,7 @@ class PairMapper(object):
 
 
 
-    def writePairBonusFile(self, filepath, chi2cut, maxNC=1, scale=0.5, intercept=0):
+    def writePairBonusFile(self, filepath, chi2cut, maxNC=1, scale=0.5, intercept=0, fileformat=0):
         """Write matrix of pairing bonuses for use in RNAstructure folding"""
 
         seqlen = len(self.parent.sequence)
@@ -302,8 +312,17 @@ class PairMapper(object):
 
         # make symmetric
         pairmat += pairmat.transpose()
+        
+        if fileformat==0:
+            np.savetxt(filepath, pairmat, fmt='%.4f')
+        
+        else:
+            with open(filepath,'w') as out:
+                for i in xrange(pairmat.shape[0]):
+                    for j in xrange(i+1, pairmat.shape[0]):
+                        if pairmat[i,j] != 0:
+                            out.write('{0} {1} {2:.7f}\n'.format(i+1, j+1, pairmat[i,j]))
 
-        np.savetxt(filepath, pairmat, fmt='%.4f')
 
 
 
@@ -313,7 +332,7 @@ class PairMapper(object):
         seqlen = self.parent.ex_readarr.shape[0]
         
         # initiate the masked array
-        comuts = np.ma.masked_array(self.parent.ex_comutarr, dtype=np.float64)
+        comuts = np.ma.masked_array(self.parent.ex_comutarr, copy=True, dtype=np.float64)
         
         # mask out the lower diagonal (which is void of info)
         comuts[np.tril_indices(seqlen)] = np.ma.masked
@@ -391,45 +410,36 @@ class PairMapper(object):
 
 
     
-    def plot(self, output, minz=2, maxz=6):
+    def plot(self, output, minz=2, maxz=6, ct=None):
         """Plot reactivity data and primary+secondary pairmap correlations"""
         
+        from pmanalysis import PairMap
+        from arcPlot import ArcPlot
+
         plot = ArcPlot()
 
         plot.reactprofile = self.profile.normprofile
         plot.reactprofileType = 'DMS'
-        plot.seq = self.profile.sequence
+        plot.seq = ''.join(self.profile.sequence)
+        
+        
+        pmobj = PairMap()
+        pmobj.primary = [(i+1,j+1,0, self.parent.getMeanZ(i,j)) for i,j in self.primary]
+        pmobj.secondary = [(i+1,j+1,0, self.parent.getMeanZ(i,j)) for i,j in self.secondary]
+        pmobj.window = self.parent.window
 
-    
-        corrs = [(i+1,j+1, self.parent.getMeanZ(i,j)) for i,j in self.secondary]
-        
-        plot.plotAlphaGradient(corrs, (30,194,255), (0.1,0.5), minz, maxz, 
-                               window=self.parent.window, panel=-1)
+        plot.addPairMap( pmobj, panel=-1)
+ 
 
-        corrs = [(i+1,j+1, self.parent.getMeanZ(i,j)) for i,j in self.primary]
-        
-        plot.plotAlphaGradient(corrs, (0, 0, 243), (0.5,0.9), minz, maxz, 
-                               window=self.parent.window, panel=-1)
-        
-        
-        # check if we need to throw error message
-        if self.comut_rates[0] < 5e-4 or self.comut_rate[1] < 1e-4:
-            msg = 'WARNING! Low comutation rates!\n'
-            msg += '\tMedian for all nts = {0:.2e}\n'.format(self.comut_rates[0])
-            msg += '\tMedian for unreactive nts = {0:.2e}\n'.format(self.comut_rates[1])
-            msg += 'PAIR-MaP data likely untrustworthy\n'
+        msg=None
+        if ct is not None:
+            plot.addCT(ct)
+            
+            p,s = pmobj.ppvsens_duplex(ct, ptype=1, profile=self.profile.normprofile)
+            msg = "PPV={0:.0f}  Sens={1:.0f}".format(p*100, s*100)
 
-            msg_pos = (0.5, 0.7)
-            fontsize = len(self.profile.normprofile)/10.
-            msg_kwargs = {'fontsize':fontsize, 'bbox':dict(facecolor='red', alpha=0.3)}
-        else:
-            msg = 'Median for all nts = {0:.2e}\n'.format(self.comut_rates[0])
-            msg += 'Median for unreactive nts = {0:.2e}\n'.format(self.comut_rates[1])
-            msg_pos = (0,1)
-            msg_kwargs = {'fontsize':12}
-        
 
-        plot.writePlot(output, msg=msg, msg_pos=msg_pos, msg_kwargs=msg_kwargs)
+        plot.writePlot(output, msg=msg)
 
 
 
@@ -597,9 +607,6 @@ if __name__ == '__main__':
                                      highbgcorr = args.highbg_corr,
                                      verbal = verbal)
     
-    # compute zscores
-    ringexp.computeZscores()
-
     # at this point, all the major calculations have been done
     
     # write all correlations to file

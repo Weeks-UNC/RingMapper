@@ -451,7 +451,7 @@ class RINGexperiment(object):
         c = float(arr[j,i])
         arr = getattr(self, prefix+'_comutarr')
         d = float(arr[i,j])
-
+        
         if n==0 or b+d==0 or c+d==0:
             return 0
         if (n*d)/((b+d)*(c+d))<1:
@@ -566,21 +566,14 @@ class RINGexperiment(object):
         allinvalid = set(ignorents)
         
         
-        # perform quality control using bg arrays, if available
+        # Mask out nt columns that have high bg mutation rates
         if self.bg_readarr is not None:
-            
-            # hard coded bg-depth=10000 and mincount=25
-            self._correlationMatrix('bg', self.corrbuffer, 10000, 20)
-            
 
-            # Mask out nt columns that have high bg mutation rates
             highbgnts = self.getReactiveNts(self.highbgrate, prefix='bg')
 
             for i in highbgnts:
                 self.ex_correlations[i,:] = np.ma.masked
                 self.ex_correlations[:,i] = np.ma.masked
-                self.bg_correlations[i,:] = np.ma.masked
-                self.bg_correlations[:,i] = np.ma.masked
                 
                 if verbal and i not in allinvalid:
                     e = float(self.bg_comutarr[i,i])/self.bg_readarr[i,i]
@@ -588,27 +581,63 @@ class RINGexperiment(object):
             
             # add highbgnts to invalid nts
             allinvalid.update(highbgnts)
-            
-            #if self.corrtype == 'apc':
-            #    self.apcCorrection('bg')
+       
 
-            # Determine pairs that are correlated in the bg sample
-            bgcorrs = self.significantCorrelations('bg', highbgcorr)
-            
-            # mask out these pairs
-            for i,j in bgcorrs:
-                self.ex_correlations[i,j] = np.ma.masked
-                self.ex_correlations[j,i] = np.ma.masked
-                
-                if verbal and i not in allinvalid and j not in allinvalid:
-                    c = self.bg_correlations[i,j]
-                    print( "Pair ({0},{1}) ignored: correlated in bg w/ chi2={2:.1f}, comut={3}".format(i+1,j+1,c, self.bg_comutarr[i,j]) )
-            
 
-        # perform apc correction after bad values are removed
+        # perform apc correction
         if self.corrtype == 'apc':
             self.apcCorrection('ex')
+        
+
+        # compute z-scores of ex matrix
+        self.computeZscores()
+
+
+        # now cross-reference and remove bg-correlated pairs
+        self.maskBGcorrelated(highbgcorr=highbgcorr, invalid=allinvalid, verbal=verbal)
+
+
+
+
+
+    def maskBGcorrelated(self, highbgcorr=10.83, invalid=[], verbal=False):
+        """mask positions in ex_correlations and ex_zscores that are correlated
+        in the bg sample and which have higher mi"""
+
+
+        if self.bg_readarr is None:
+            return
+
+        # compute bg correlations and get pairs that are significantly correlated
+        self._correlationMatrix('bg', self.corrbuffer, 10000, 20)
+        bgcorrs = self.significantCorrelations('bg', highbgcorr)
          
+
+        # search through significant correlations
+        for i,j in bgcorrs:
+
+            # compute mi of ex and bg samples
+            exmi = self._mutualinformation(self.ex_readarr[i,j], self.ex_inotjarr[i,j],
+                                           self.ex_inotjarr[j,i], self.ex_comutarr[i,j])
+            bgmi = self._mutualinformation(self.bg_readarr[i,j], self.bg_inotjarr[i,j],
+                                           self.bg_inotjarr[j,i], self.bg_comutarr[i,j])
+            
+            if 5*bgmi > exmi:
+                
+                # look to see if i,j was significant and if so print
+                excorr = self.ex_correlations[i,j]
+                if verbal and i not in invalid and j not in invalid and excorr>=20:
+                    outstr = 'Correlated pair ({0},{1}) w/ chi2={2:.1f} ignored'.format(i+1, j+1, excorr)
+                    outstr += ': correlated in bg w/ chi2={0:.1f}'.format(self.bg_correlations[i,j])
+                    print(outstr)        
+                
+                # mask out values
+                self.ex_correlations[i,j] = np.ma.masked
+                self.ex_correlations[j,i] = np.ma.masked
+                self.ex_zscores[i,j] = np.ma.masked
+                self.ex_zscores[j,i] = np.ma.masked
+                
+
 
 
     def significantCorrelations(self, prefix, chi2cut, sign=-1):
@@ -620,7 +649,7 @@ class RINGexperiment(object):
 
         returns list of (i,j) pairs
         """
-       
+
         seqlen = self.getMaxArrayIndex()
        
         corrmat = getattr(self, prefix+'_correlations')
@@ -628,12 +657,11 @@ class RINGexperiment(object):
         corrs = []
         for i in xrange(seqlen):
             for j in xrange(i, seqlen):
-                
                 # this will automatically skip masked out values
                 if corrmat[i,j] >= chi2cut and self.correlationsign(i,j,prefix) >= sign:
                     corrs.append((i,j))
 
-
+        
         return corrs
 
 
@@ -657,7 +685,7 @@ class RINGexperiment(object):
         seqlen = self.getMaxArrayIndex()
         
         for i in xrange(seqlen):
-            for j in xrange(i, seqlen):
+            for j in xrange(i+1, seqlen):
                 if not corrmat.mask[i,j]:
                     zscores[i,j] = (corrmat[i,j]-corrmean[i])/corrstd[i]
                     zscores[j,i] = (corrmat[i,j]-corrmean[j])/corrstd[j]
