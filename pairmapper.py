@@ -136,8 +136,6 @@ class PairMapper(object):
             elif self.parent.ex_correlations[i,j] > corrdict[j][2]:
                 corrdict[j] = (i,j, self.parent.ex_correlations[i,j])
         
-        print corrdict[32]
-        print corrdict[50]
 
         # eliminate correlations that are not mutually strongest
         ntkeys = corrdict.keys()
@@ -152,7 +150,6 @@ class PairMapper(object):
             elif k == j and (i not in corrdict or corrdict[i] != corrdict[k]):
                 del corrdict[k]
         
-        print corrdict[32]==corrdict[50]
 
         # function to test if two correlations are parallel
         def parallel(c1, c2):
