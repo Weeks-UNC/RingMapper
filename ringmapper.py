@@ -570,7 +570,7 @@ class RINGexperiment(object):
         if self.bg_readarr is not None:
             
             # hard coded bg-depth=10000 and mincount=25
-            self._correlationMatrix('bg', self.corrbuffer, 10000, 20)
+            self._correlationMatrix('bg', self.corrbuffer, 10000, 5)
             
 
             # Mask out nt columns that have high bg mutation rates
