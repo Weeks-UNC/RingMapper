@@ -53,8 +53,7 @@ class PairMapper(object):
        
         self.computePrimaryCorrs(primary_reactivity, primary_zscore)
         self.computeSecondaryCorrs(secondary_reactivity, secondary_zscore)
-
-
+        
 
     def computePrimaryCorrs(self, primary_reactivity, primary_zscore):
         """Compute primary pair signals"""
@@ -121,7 +120,6 @@ class PairMapper(object):
     def getStrongest(self):
         """Return non-conflicting strongest correlations"""
         
-        print self.complementarycorrs
 
         # get list of strongest correlation at each nt
         corrdict = {}
@@ -173,9 +171,6 @@ class PairMapper(object):
                 
                 if k+i in corrdict and not parallel(corrdict[k], corrdict[k+i]) \
                                    and corrdict[k+i][2] > corrdict[k][2]:
-
-                    if k==32:
-                        print k+i, corrdict[k+i]
                     keep = False
                     break
                 
@@ -183,8 +178,6 @@ class PairMapper(object):
                 j = corrdict[k][1]
                 if j+i in corrdict and not parallel(corrdict[k], corrdict[j+i]) \
                                    and corrdict[j+i][2] > corrdict[k][2]:
-                    if k==32:
-                        print k+i, corrdict[k+i]
                     keep = False
                     break
 
@@ -315,6 +308,7 @@ class PairMapper(object):
         
         else:
             with open(filepath,'w') as out:
+                out.write('; i j bonus\n')
                 for i in xrange(pairmat.shape[0]):
                     for j in xrange(i+1, pairmat.shape[0]):
                         if pairmat[i,j] != 0:

@@ -609,7 +609,7 @@ class RINGexperiment(object):
             return
 
         # compute bg correlations and get pairs that are significantly correlated
-        self._correlationMatrix('bg', self.corrbuffer, 10000, 20)
+        self._correlationMatrix('bg', self.corrbuffer, 10000, 10)
         bgcorrs = self.significantCorrelations('bg', highbgcorr)
          
 
