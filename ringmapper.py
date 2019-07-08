@@ -533,7 +533,7 @@ class RINGexperiment(object):
     
 
 
-    def computeCorrelationMatrix(self, corrbuffer=5, mindepth=10000, 
+    def computeCorrelationMatrix(self, corrbuffer=6, mindepth=10000, 
                                  mincount=50, ignorents = [], highbgrate=0.02, 
                                  highbgcorr=10.83, verbal=True):
         """Compute the correlation matrices and mask invalid entries
@@ -790,7 +790,7 @@ def parseArguments():
     parser.add_argument('--metric', type=str, default='apc', help="""Metric to use for computing correlations. 
                         options are chi/g/apc (Chi, G-test, or APC corrected G-test). (default = apc)""")
     
-    parser.add_argument('--mincorrdistance', type=int, default=5, help="""Minimum distance allowed between correlations (default=5)""")
+    parser.add_argument('--mincorrdistance', type=int, default=6, help="""Minimum distance allowed between correlations (default=6)""")
 
     parser.add_argument('--mincoverage', type=float, default=0, help="""Quality filter reads by requiring a minimum 
                         number of positional matches to reference sequence.

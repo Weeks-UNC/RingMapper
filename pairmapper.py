@@ -499,8 +499,8 @@ def parseArguments():
                                            sample, with correlation determined via this significance value 
                                            (default=10.83 --> P=1e-3)""")
 
-    optional.add_argument('--mincorrdistance', type=int, default=5, help="""Minimum distance allowed between correlations 
-                                               (default = 5)""")
+    optional.add_argument('--mincorrdistance', type=int, default=6, help="""Minimum distance allowed between correlations 
+                                               (default = 6)""")
     
     optional.add_argument('--mindepth', type=int, default=10000, help="""Minimum pairwise read depth allowed for calculating 
                                         correlations (default = 10000)""")
