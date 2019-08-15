@@ -1,0 +1,65 @@
+Sequence length=176 read from ref_addWTfull.fa
+Using APC corrected G-test correlation metric
+Computing correlations using window=1
+Filling ex arrays from ref_modified.mut
+skipped 7017 lines
+Input summary:
+	200000 reads in ref_modified.mut
+	192964 reads passed filtering
+Filling bg arrays from ref_untreated.mut
+skipped 1704 lines
+Input summary:
+	100000 reads in ref_untreated.mut
+	98288 reads passed filtering
+Nt 47 ignored: bg_rate=0.021
+Nt 54 ignored: bg_rate=0.030
+Nt 55 ignored: bg_rate=0.021
+Nt 108 ignored: bg_rate=0.023
+Pair (17,34) ignored: correlated in bg w/ chi2=13.2, comut=31
+Pair (17,58) ignored: correlated in bg w/ chi2=11.9, comut=19
+Pair (17,68) ignored: correlated in bg w/ chi2=11.2, comut=20
+Pair (19,27) ignored: correlated in bg w/ chi2=19.4, comut=20
+Pair (19,37) ignored: correlated in bg w/ chi2=13.2, comut=18
+Pair (22,68) ignored: correlated in bg w/ chi2=13.2, comut=24
+Pair (23,34) ignored: correlated in bg w/ chi2=15.7, comut=55
+Pair (23,82) ignored: correlated in bg w/ chi2=11.9, comut=25
+Pair (24,31) ignored: correlated in bg w/ chi2=17.4, comut=38
+Pair (24,34) ignored: correlated in bg w/ chi2=16.1, comut=53
+Pair (24,37) ignored: correlated in bg w/ chi2=14.1, comut=39
+Pair (24,45) ignored: correlated in bg w/ chi2=23.3, comut=50
+Pair (24,70) ignored: correlated in bg w/ chi2=12.0, comut=26
+Pair (24,84) ignored: correlated in bg w/ chi2=15.1, comut=23
+Pair (27,37) ignored: correlated in bg w/ chi2=25.6, comut=39
+Pair (27,43) ignored: correlated in bg w/ chi2=15.4, comut=25
+Pair (27,81) ignored: correlated in bg w/ chi2=19.2, comut=24
+Pair (27,91) ignored: correlated in bg w/ chi2=13.2, comut=22
+Pair (27,109) ignored: correlated in bg w/ chi2=11.2, comut=30
+Pair (27,124) ignored: correlated in bg w/ chi2=17.3, comut=26
+Pair (29,37) ignored: correlated in bg w/ chi2=14.0, comut=34
+Pair (29,43) ignored: correlated in bg w/ chi2=17.9, comut=28
+Pair (29,58) ignored: correlated in bg w/ chi2=14.5, comut=28
+Pair (30,60) ignored: correlated in bg w/ chi2=11.9, comut=5
+Pair (31,41) ignored: correlated in bg w/ chi2=15.1, comut=28
+Pair (31,154) ignored: correlated in bg w/ chi2=11.0, comut=10
+Pair (33,43) ignored: correlated in bg w/ chi2=12.1, comut=21
+Pair (34,41) ignored: correlated in bg w/ chi2=18.8, comut=42
+Pair (34,43) ignored: correlated in bg w/ chi2=16.4, comut=35
+Pair (34,58) ignored: correlated in bg w/ chi2=13.0, comut=35
+Pair (34,68) ignored: correlated in bg w/ chi2=14.1, comut=38
+Pair (34,84) ignored: correlated in bg w/ chi2=13.5, comut=25
+Pair (34,109) ignored: correlated in bg w/ chi2=14.0, comut=44
+Pair (37,45) ignored: correlated in bg w/ chi2=16.1, comut=40
+Pair (37,82) ignored: correlated in bg w/ chi2=15.4, comut=23
+Pair (37,98) ignored: correlated in bg w/ chi2=15.7, comut=39
+Pair (43,68) ignored: correlated in bg w/ chi2=12.4, comut=22
+Pair (43,70) ignored: correlated in bg w/ chi2=16.7, comut=20
+Pair (43,124) ignored: correlated in bg w/ chi2=16.6, comut=21
+Pair (58,77) ignored: correlated in bg w/ chi2=11.7, comut=23
+Pair (58,124) ignored: correlated in bg w/ chi2=20.4, comut=24
+Pair (65,76) ignored: correlated in bg w/ chi2=13.2, comut=10
+Pair (67,74) ignored: correlated in bg w/ chi2=20.2, comut=15
+Pair (68,77) ignored: correlated in bg w/ chi2=14.5, comut=26
+Pair (68,141) ignored: correlated in bg w/ chi2=13.0, comut=19
+Pair (70,98) ignored: correlated in bg w/ chi2=12.9, comut=26
+Pair (98,106) ignored: correlated in bg w/ chi2=11.0, comut=19
+Pair (137,146) ignored: correlated in bg w/ chi2=27.4, comut=11
