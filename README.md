@@ -1,10 +1,10 @@
 # RingMapper
-============
 
 Code for performing RING-MaP and PAIR-MaP analysis
 (RingMapper & PairMapper)
 
 *Copywrite 2019 Anthony Mustoe*. This project is licensed under the terms of the MIT license
+
 Contact: amustoe@unc.edu
 
 -------------------------------------------------------------
@@ -12,19 +12,19 @@ Contact: amustoe@unc.edu
 
 General Description
 -------------------
-RingMapper & Pairmapper automate the detection of correlated modifcation 
+RingMapper & PairMapper automate the detection of correlated modifcation 
 events in mutational profiling (MaP) experiments.
 
 RingMapper is a flexible code for computing correlations (RINGs)
 between all nucleotides in an RNA. Users can choose to compute
 correlations between single nucleotides (window=1; default) or between larger
 nucleotide windows (e.g. window=3, which tests whether 3-nt windows are
-correlated with each other). Run ringmapper.py --help for options.
+correlated with each other). Run ringmapper.py with the --help flag for options.
 
 PairMapper is a wrapper for RingMapper that performs PAIR-MaP analysis,
 i.e. it searches for correlations indicative of secondary structure base pairs. 
 Correlation calculations are done using a 3-nt window and then filtered by 
-nt complementarity and reactivity. Run pairmapper.py --help for options.
+nt complementarity and reactivity. Run pairmapper.py with the --help flag for options.
 
 Both RingMapper and PairMapper require read alignment and preprocessing 
 by ShapeMapper2 using the --output-parsed flag. 
@@ -56,9 +56,10 @@ Dependencies
 - cython (developed using v0.23)
 
 
+--------------------------------------------------------------------------
 
 RingMapper Usage
---------------------------------------------------------------------------
+-----------------
 ```
 ringmapper.py <optional args> inputfile outputfile | --help
 ```
@@ -89,13 +90,13 @@ A full list of optional arguments/parameters can be accessed by running with --h
 
 ### Outputs
 ```
-Ringfile        List of correlations. See [ringfile-format](docs/ringfile-format.md)
+Ringfile        List of correlations. See [ringfile-format](./docs/ringfile-format.md)
 ```
 
-
+--------------------------------------------------------------------------
 
 PairMapper Usage
--------------------------------------------------------------------------------
+-----------------
 ```
 pairmapper.py <optional args> --modified_parsed <modfile> --untreated_parsed <untfile> --profile <profile> --out <prefix> | --help
 ```
@@ -142,6 +143,8 @@ on the slow side (1000-5000 reads/sec) whereas small RNAs will be on
 the fast side. For example, for a 1,000 nt RNA with 10,000,000 aligned reads, 
 RingMapper/PairMapper processing should take roughly 1 hour.
 
+
+----------------------------------------------------------------
 
 
 Example workflow
