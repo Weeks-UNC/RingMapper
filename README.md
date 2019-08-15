@@ -90,7 +90,7 @@ A full list of optional arguments/parameters can be accessed by running with --h
 
 ### Outputs
 ```
-Ringfile        List of correlations. See [ringfile-format](./docs/ringfile-format.md)
+Ringfile        List of correlations. See docs/ringfile-format.txt
 ```
 
 --------------------------------------------------------------------------
@@ -122,18 +122,20 @@ can be modified if desired. A full list of modifiable parameters can be accessed
 ```
 <prefix>-allcorrs.txt     Ringfile output containing all correlations computed 
                           using a 3-nt window. 
-                          See [ringfile-format](docs/ringfile-format.md)
+                          See docs/ringfile-format.txt
 
 <prefix>-pairmap.txt      Pairmapfile output containing PairMapper filtered correlations.
-                          See [pairmapfile-format](docs/pairmapfile-format.md)
+                          See docs/pairmapfile-format.txt
 
 <prefix>.dms              Normalized DMS reactivities. 
-                          See [dmsreactivity-format](docs/dmsreactivity-format.md)
+                          See docs/dmsreactivity-format.txt
 
 <prefix>.bp	              Base pair bonus file for PAIR-MaP structure modeling in RNAstructure.
-                          See [pairingbonus-format](docs/pairingbonus-format.md)
+                          See docs/pairingbonus-format.txt
 ```
 
+
+--------------------------------------------------------------------------
 
 
 Timing/Performance
