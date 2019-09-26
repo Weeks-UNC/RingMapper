@@ -35,7 +35,6 @@ RING and PAIR-MaP data can be visualized using the arcPlot plotting tool,
 available at https://github.com/Weeks-UNC/arcPlot
 
 
-
 Installation
 ------------
 - Compile cython routines by running:
@@ -54,6 +53,13 @@ Dependencies
 ------------
 - python 2.7, numpy
 - cython (developed using v0.23)
+
+
+Citation
+--------
+Please cite:
+
+
 
 
 --------------------------------------------------------------------------
