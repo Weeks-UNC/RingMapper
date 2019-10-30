@@ -59,6 +59,8 @@ Citation
 --------
 Please cite:
 
+A.M. Mustoe, N.N. Lama, P.S. Irving, S.W. Olson, K.M. Weeks. RNA base-pairing complexity in living cells visualized by correlated chemical probing, PNAS (2019).
+
 
 
 
@@ -150,6 +152,18 @@ A rule of thumb is to expect between 1000-10000 reads/sec. Large RNAs will be
 on the slow side (1000-5000 reads/sec) whereas small RNAs will be on
 the fast side. For example, for a 1,000 nt RNA with 10,000,000 aligned reads, 
 RingMapper/PairMapper processing should take roughly 1 hour.
+
+
+----------------------------------------------------------------
+
+Note on experimental modification rates
+---------------------------------------
+
+PAIR-MaP analysis can only be performed on MaP datasets containing high levels of chemical modification. Datasets are automatically checked to make sure they exceed minimal modification thresholds, corresponding to median comodification rates >0.0005. PAIR-MaP output files will not be written if this quality check fails.
+
+Standard RING-MaP analysis can be performed on any MaP dataset. However, sensitivity again depends strongly on modification rates.
+
+As a general rule of thumb, sucessful RING-MaP and PAIR-MaP analysis requires experimental conditions be optimized to achieve 95th percentile modification rates = ~10%. 
 
 
 ----------------------------------------------------------------
