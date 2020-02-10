@@ -5,7 +5,7 @@ Code for performing RING-MaP and PAIR-MaP analysis
 
 *Copywrite 2019 Anthony Mustoe*. This project is licensed under the terms of the MIT license
 
-Contact: amustoe@unc.edu
+Contact: anthony.mustoe@bcm.edu
 
 -------------------------------------------------------------
 
