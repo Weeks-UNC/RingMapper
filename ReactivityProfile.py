@@ -724,7 +724,7 @@ class ReactivityProfile(object):
                 if np.isnan(v):
                     v = -999
 
-                out.write("{0} {1:.3f}\n".format(self.nts[i], v))
+                out.write("{0} {1:.4f}\n".format(self.nts[i], v))
     
     def writeRNAstructureSeq(self, writename, header=None):
         

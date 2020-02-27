@@ -32,7 +32,7 @@ class PairMapper(object):
 
 
     def __init__(self, ringexp, profile, 
-                       chi2cut=20, 
+                       chi2cut=23.9, 
                        primary_reactivity=0.2, primary_zscore=2.0,
                        secondary_reactivity=0.5, secondary_zscore=2.0,
                        maxGU=None, maxNC=0):
@@ -281,7 +281,7 @@ class PairMapper(object):
 
 
 
-    def writePairBonusFile(self, filepath, chi2cut, maxNC=1, scale=0.5, intercept=0, fileformat=0):
+    def writePairBonusFile(self, filepath, chi2cut=23.9, maxNC=1, scale=0.5, intercept=0, fileformat=1):
         """Write matrix of pairing bonuses for use in RNAstructure folding"""
 
         seqlen = len(self.parent.sequence)
@@ -318,7 +318,7 @@ class PairMapper(object):
 
 
     def checkMutationRates(self, depthcut=10000, primary_reactivity = 0.2):
-        """Check comutation rates to make sure they are high enough to accurately measure pairs"""
+        """Check comutation rates and read depths to make sure they are high enough to accurately measure pairs"""
         
         seqlen = self.parent.ex_readarr.shape[0]
         
@@ -382,25 +382,37 @@ class PairMapper(object):
         median_unreact_comut = np.ma.median(comuts)
         median_unreact_count = comuts.count()
        
-
+        allpassed = True
+        
+        # mutation rate checks
         if median_comut < 5e-4 or median_unreact_comut < 1e-4:
             sys.stdout.write('******************************\n')
             sys.stdout.write('WARNING: Low comutation rates!\n') 
             sys.stdout.write('\tMedian for all nts = {0:.2e}  ({1} pairs)\n'.format(median_comut, median_count))
             sys.stdout.write('\tMedian for unreactive nts = {0:.2e}  ({1} pairs)\n'.format(median_unreact_comut, median_unreact_count))
             sys.stdout.write('PAIR-MaP data likely untrustworthy\n') 
-
-            return False
-
+         
+            allpassed = False
+        
         else:
             sys.stdout.write("Reactivity rate quality checks passed\n")
             sys.stdout.write('\tMedian for all nts = {0:.2e}  ({1} pairs)\n'.format(median_comut, median_count))
             sys.stdout.write('\tMedian for unreactive nts = {0:.2e}  ({1} pairs)\n'.format(median_unreact_comut, median_unreact_count))
-            return True
+        
+        
+        # read depth checks
+        median_depth = np.median(np.diag(self.parent.ex_readarr))
 
-
-
+        if median_depth<400000:
+            sys.stdout.write('******************************\n')
+            sys.stdout.write("WARNING: Low read depths!\n")
+            sys.stdout.write("Median read depth = {}!\n".format(median_depth))
+            allpassed = False
+ 
+        return allpassed
     
+
+
     def plot(self, output, minz=2, maxz=6, ct=None):
         """Plot reactivity data and primary+secondary pairmap correlations"""
         
@@ -489,7 +501,7 @@ def parseArguments():
                                            (i.e. if 150 is passed, reads will be required to have at least 150 valid matches).
                                            By default, this filter is disabled.""")
 
-    optional.add_argument('--chisq_cut', type=float, default=20.0, help="Set chisq cutoff (default = 20)")
+    optional.add_argument('--chisq_cut', type=float, default=23.9, help="Set chisq cutoff (default = 23.9)")
 
 
     optional.add_argument('--highbg_rate', type=float, default = 0.02, help="""Ignore nt position with bg reactivity above
@@ -516,6 +528,9 @@ def parseArguments():
                                       (default = 0.5)""")
     optional.add_argument('--secondary_zscore', type=float, default=2.0, help="""Zscore cutoff for secondary correlations
                                       (default = 2.0)""")
+    
+    optional.add_argument('--override_qualcheck', action='store_true', help="""Override quality checks and perform PAIR-MaP analysis despite poor data quality""")
+
 
     parser._action_groups.append(optional)
 
@@ -612,13 +627,13 @@ if __name__ == '__main__':
                        secondary_zscore=args.secondary_zscore)
     
 
-    if pairs.passfilter:
+    if pairs.passfilter or pairs.override_qualcheck:
 
         # write out pairmap data
         pairs.writePairs('{}-pairmap.txt'.format(args.out))
     
         # write out folding restraint matrix
-        pairs.writePairBonusFile('{}.bp'.format(args.out), args.chisq_cut, maxNC=1)
+        pairs.writePairBonusFile('{}.bp'.format(args.out), chi2cut=args.chisq_cut, maxNC=1)
 
 
     # make plot

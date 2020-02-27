@@ -103,7 +103,7 @@ class RINGexperiment(object):
         
         elif corrtype == 'mi':
             self.correlationfunc = self._mutualinformation
-            if verbal: print("Using normalized MI correlation metric")
+            if verbal: print("Using MI correlation metric")
 
 
         elif corrtype == 'nmi':
@@ -533,8 +533,8 @@ class RINGexperiment(object):
     
 
 
-    def computeCorrelationMatrix(self, corrbuffer=6, mindepth=10000, 
-                                 mincount=50, ignorents = [], highbgrate=0.02, 
+    def computeCorrelationMatrix(self, corrbuffer=6, mindepth=10000, mincount=50,
+                                 ignorents = [], ignorepairs = [], highbgrate=0.02, 
                                  highbgcorr=10.83, verbal=True):
         """Compute the correlation matrices and mask invalid entries
         corrbuffer     = buffer to keep between correlations (i.e. minimum correlation distance)
@@ -582,6 +582,14 @@ class RINGexperiment(object):
             # add highbgnts to invalid nts
             allinvalid.update(highbgnts)
        
+        
+        if len(ignorepairs) > 0:
+            for i,j in ignorepairs:
+                self.ex_correlations[i,j] = np.ma.masked
+                self.ex_correlations[j,i] = np.ma.masked
+
+                if verbal:
+                    print("Pair ({0},{1}) ignored".format(i+1,j+1))
 
 
         # perform apc correction
@@ -626,9 +634,9 @@ class RINGexperiment(object):
                 
                 # look to see if i,j was significant and if so print
                 excorr = self.ex_correlations[i,j]
-                if verbal and i not in invalid and j not in invalid and excorr>=20:
+                if verbal and i not in invalid and j not in invalid and excorr>=23.9:
                     outstr = 'Correlated pair ({0},{1}) w/ chi2={2:.1f} ignored'.format(i+1, j+1, excorr)
-                    outstr += ': correlated in bg w/ chi2={0:.1f}'.format(self.bg_correlations[i,j])
+                    outstr += ': correlated in BG w/ chi2={0:.1f}'.format(self.bg_correlations[i,j])
                     print(outstr)        
                 
                 # mask out values
@@ -681,12 +689,13 @@ class RINGexperiment(object):
         # compute means and std for z-score calculation
         corrmean = corrmat.mean(axis=0)
         corrstd = corrmat.std(axis=0)
-        
+        counts = corrmat.count(axis=0)
+
         seqlen = self.getMaxArrayIndex()
         
         for i in xrange(seqlen):
             for j in xrange(i+1, seqlen):
-                if not corrmat.mask[i,j]:
+                if not corrmat.mask[i,j] and counts[i]>2 and counts[j]>2:
                     zscores[i,j] = (corrmat[i,j]-corrmean[i])/corrstd[i]
                     zscores[j,i] = (corrmat[i,j]-corrmean[j])/corrstd[j]
 
@@ -699,9 +708,39 @@ class RINGexperiment(object):
         """Return the mean zscore at i,j"""
         return (self.ex_zscores[i,j]+self.ex_zscores[j,i])/2
 
+    
+    def significantDifference(self, i, j, tot, b, c, d):
+        """Compute whether the (i,j) contigency table is different from the passed
+        contigency table (tot, b, c, d). Significant difference is computed using
+        the G-test"""
+        
+        if self.ex_readarr[i,j] == 0 or tot == 0:
+            return -1
+
+        g=0
+        selftotal = float(self.ex_readarr[i,j])
+        
+        selfa = selftotal-self.ex_inotjarr[i,j]-self.ex_inotjarr[j,i]-self.ex_comutarr[i,j]
+        a = float(tot-b-c-d)
+
+        if selfa>0 and a>0:
+            g += selfa*np.log( (selfa/selftotal) / (a/tot) )
+        
+        if self.ex_inotjarr[i,j]>0 and b>0:
+            g += self.ex_inotjarr[i,j]*np.log( (self.ex_inotjarr[i,j]/selftotal) / (float(b)/tot) )
+
+        if self.ex_inotjarr[j,i]>0 and c>0:
+            g += self.ex_inotjarr[j,i]*np.log( (self.ex_inotjarr[j,i]/selftotal) / (float(c)/tot) )
+
+        if self.ex_comutarr[i,j]>0 and d>0:
+            g += self.ex_comutarr[i,j]*np.log( (self.ex_comutarr[i,j]/selftotal) / (float(d)/tot) )
+
+        
+        return 2*g
 
 
-    def writeCorrelations(self, outfile, chi2cut=20, sign=-1):
+
+    def writeCorrelations(self, outfile, chi2cut=23.9, sign=-1):
         """Write out correlations in a human readable format that also conforms
         to pairing probability (dotplot) file format for subsequent plotting.
     
@@ -782,7 +821,7 @@ def parseArguments():
     parser.add_argument('--untreated', help='Path to untreated (bg) mutation file. Used to remove high bg positions and bg correlations')
     
     parser.add_argument('--window', type=int, default=1, help="Nt window over which to compute correlations (default = 1)")
-    parser.add_argument('--chisq_cut', type=float, default=20.0, help="Set chisq cutoff (default = 20)")
+    parser.add_argument('--chisq_cut', type=float, default=23.9, help="Set chisq cutoff (default = 23.9)")
     parser.add_argument('--mindepth', type=int, default=10000, help='Minimum pairwise read depth allowed for calculating correlations (default = 10000)')
     parser.add_argument('--mincount', type=int, default=50, help="""Minimum required count in contigency table 
                         (default = 50). Nt pairs with fewer than this number of comutations are ignored""")
