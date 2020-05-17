@@ -709,34 +709,42 @@ class RINGexperiment(object):
         return (self.ex_zscores[i,j]+self.ex_zscores[j,i])/2
 
     
-    def significantDifference(self, i, j, tot, b, c, d):
+    def significantDifference(self, i, j, comp_tot, comp_b, comp_c, comp_d):
         """Compute whether the (i,j) contigency table is different from the passed
         contigency table (tot, b, c, d). Significant difference is computed using
         the G-test"""
         
-        if self.ex_readarr[i,j] == 0 or tot == 0:
+        
+        if self.ex_readarr[i,j] == 0 or comp_tot == 0:
             return -1
 
-        g=0
-        selftotal = float(self.ex_readarr[i,j])
         
-        selfa = selftotal-self.ex_inotjarr[i,j]-self.ex_inotjarr[j,i]-self.ex_comutarr[i,j]
-        a = float(tot-b-c-d)
+        def _g(self_val, self_tot, comp_val, comp_tot):
+            
+            self_val = float(self_val)
+            if self_val == 0: self_val = 0.1
 
-        if selfa>0 and a>0:
-            g += selfa*np.log( (selfa/selftotal) / (a/tot) )
+            comp_val = float(comp_val)
+            if comp_val == 0: comp_val = 0.1
+
+            return self_val*np.log( (self_val/self_tot) / (comp_val/comp_tot) )
+ 
         
-        if self.ex_inotjarr[i,j]>0 and b>0:
-            g += self.ex_inotjarr[i,j]*np.log( (self.ex_inotjarr[i,j]/selftotal) / (float(b)/tot) )
-
-        if self.ex_inotjarr[j,i]>0 and c>0:
-            g += self.ex_inotjarr[j,i]*np.log( (self.ex_inotjarr[j,i]/selftotal) / (float(c)/tot) )
-
-        if self.ex_comutarr[i,j]>0 and d>0:
-            g += self.ex_comutarr[i,j]*np.log( (self.ex_comutarr[i,j]/selftotal) / (float(d)/tot) )
-
+        # compute 'a' component
+        self_a = self.ex_readarr[i,j]-self.ex_inotjarr[i,j]-self.ex_inotjarr[j,i]-self.ex_comutarr[i,j]
+        comp_a = comp_tot-comp_b-comp_c-comp_d
         
-        return 2*g
+        G = _g(self_a, self.ex_readarr[i,j], comp_a, comp_tot)
+        G += _g(self.ex_inotjarr[i,j], self.ex_readarr[i,j], comp_b, comp_tot)
+        G += _g(self.ex_inotjarr[j,i], self.ex_readarr[i,j], comp_c, comp_tot)
+        G += _g(self.ex_comutarr[i,j], self.ex_readarr[i,j], comp_d, comp_tot)
+
+
+        if G < 0:
+            print('WARNING!!! Negative Chi2; {} {} {} {} ; {} {} {} {}'.format(selftotal, self.ex_inotjarr[i,j], self.ex_inotjarr[j,i], self.ex_comutarr[i,j], tot,b,c,d))
+
+
+        return 2*G
 
 
 
