@@ -719,19 +719,7 @@ class RINGexperiment(object):
             return -1
 
         
-        def _g(self_val, self_tot, comp_val, comp_tot):
-            
-            self_val = float(self_val)
-            if self_val == 0: self_val = 0.1
-
-            comp_val = float(comp_val)
-            if comp_val == 0: comp_val = 0.1
-
-            return self_val*np.log( (self_val/self_tot) / (comp_val/comp_tot) )
-        
-
-
-        def _g2(obs, e1, e2, N):
+        def _g(obs, e1, e2, N):
             
             if obs == 0: obs = 0.1
             if e1 == 0: e1 = 0.1
@@ -743,13 +731,7 @@ class RINGexperiment(object):
         # compute 'a' component
         self_a = self.ex_readarr[i,j]-self.ex_inotjarr[i,j]-self.ex_inotjarr[j,i]-self.ex_comutarr[i,j]
         comp_a = comp_tot-comp_b-comp_c-comp_d
-        
-        G = _g(self_a, self.ex_readarr[i,j], comp_a, comp_tot)
-        G += _g(self.ex_inotjarr[i,j], self.ex_readarr[i,j], comp_b, comp_tot)
-        G += _g(self.ex_inotjarr[j,i], self.ex_readarr[i,j], comp_c, comp_tot)
-        G += _g(self.ex_comutarr[i,j], self.ex_readarr[i,j], comp_d, comp_tot)
-
-        
+                
         A = float(self_a + comp_a)
         B = float(self.ex_inotjarr[i,j] + comp_b)
         C = float(self.ex_inotjarr[j,i] + comp_c)
@@ -758,21 +740,20 @@ class RINGexperiment(object):
         F = float(comp_tot)
         N = float(E+F)
         
-        ng = _g2(self_a, A, E, N)
-        ng += _g2(comp_a, A, F, N)
-        ng += _g2(self.ex_inotjarr[i,j], B, E, N)
-        ng += _g2(comp_b, B, F, N)
-        ng += _g2(self.ex_inotjarr[j,i], C, E, N)
-        ng += _g2(comp_c, C, F, N)
-        ng += _g2(self.ex_comutarr[i,j], D, E, N)
-        ng += _g2(comp_d, D, F, N)
+        ng = _g(self_a, A, E, N)
+        ng += _g(comp_a, A, F, N)
+        ng += _g(self.ex_inotjarr[i,j], B, E, N)
+        ng += _g(comp_b, B, F, N)
+        ng += _g(self.ex_inotjarr[j,i], C, E, N)
+        ng += _g(comp_c, C, F, N)
+        ng += _g(self.ex_comutarr[i,j], D, E, N)
+        ng += _g(comp_d, D, F, N)
 
-        if G < 0:
+        if ng < 0:
             print('WARNING!!! Negative Chi2; {} {} {} {} ; {} {} {} {}'.format(selftotal, self.ex_inotjarr[i,j], self.ex_inotjarr[j,i], self.ex_comutarr[i,j], tot,b,c,d))
 
         
-
-        return 2*nG
+        return 2*ng
 
 
 
