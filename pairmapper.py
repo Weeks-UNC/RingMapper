@@ -627,7 +627,7 @@ if __name__ == '__main__':
                        secondary_zscore=args.secondary_zscore)
     
 
-    if pairs.passfilter or pairs.override_qualcheck:
+    if pairs.passfilter or args.override_qualcheck:
 
         # write out pairmap data
         pairs.writePairs('{}-pairmap.txt'.format(args.out))
