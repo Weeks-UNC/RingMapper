@@ -209,7 +209,7 @@ class ReactivityProfile(object):
         with open(filepath, 'rU') as f:
             
             header = f.readline().split()
-            header = map(str.lower, header)
+            header = [x.lower() for x in header]
     
             nt_idx = header.index('nucleotide')
             seq_idx = header.index('sequence')
@@ -724,7 +724,7 @@ class ReactivityProfile(object):
                 if np.isnan(v):
                     v = -999
 
-                out.write("{0} {1:.3f}\n".format(self.nts[i], v))
+                out.write("{0} {1:.4f}\n".format(self.nts[i], v))
     
     def writeRNAstructureSeq(self, writename, header=None):
         

@@ -103,7 +103,7 @@ class RINGexperiment(object):
         
         elif corrtype == 'mi':
             self.correlationfunc = self._mutualinformation
-            if verbal: print("Using normalized MI correlation metric")
+            if verbal: print("Using MI correlation metric")
 
 
         elif corrtype == 'nmi':
@@ -451,7 +451,7 @@ class RINGexperiment(object):
         c = float(arr[j,i])
         arr = getattr(self, prefix+'_comutarr')
         d = float(arr[i,j])
-
+        
         if n==0 or b+d==0 or c+d==0:
             return 0
         if (n*d)/((b+d)*(c+d))<1:
@@ -533,8 +533,8 @@ class RINGexperiment(object):
     
 
 
-    def computeCorrelationMatrix(self, corrbuffer=5, mindepth=10000, 
-                                 mincount=50, ignorents = [], highbgrate=0.02, 
+    def computeCorrelationMatrix(self, corrbuffer=6, mindepth=10000, mincount=50,
+                                 ignorents = [], ignorepairs = [], highbgrate=0.02, 
                                  highbgcorr=10.83, verbal=True):
         """Compute the correlation matrices and mask invalid entries
         corrbuffer     = buffer to keep between correlations (i.e. minimum correlation distance)
@@ -566,21 +566,14 @@ class RINGexperiment(object):
         allinvalid = set(ignorents)
         
         
-        # perform quality control using bg arrays, if available
+        # Mask out nt columns that have high bg mutation rates
         if self.bg_readarr is not None:
-            
-            # hard coded bg-depth=10000 and mincount=25
-            self._correlationMatrix('bg', self.corrbuffer, 10000, 5)
-            
 
-            # Mask out nt columns that have high bg mutation rates
             highbgnts = self.getReactiveNts(self.highbgrate, prefix='bg')
 
             for i in highbgnts:
                 self.ex_correlations[i,:] = np.ma.masked
                 self.ex_correlations[:,i] = np.ma.masked
-                self.bg_correlations[i,:] = np.ma.masked
-                self.bg_correlations[:,i] = np.ma.masked
                 
                 if verbal and i not in allinvalid:
                     e = float(self.bg_comutarr[i,i])/self.bg_readarr[i,i]
@@ -588,27 +581,71 @@ class RINGexperiment(object):
             
             # add highbgnts to invalid nts
             allinvalid.update(highbgnts)
-            
-            #if self.corrtype == 'apc':
-            #    self.apcCorrection('bg')
-
-            # Determine pairs that are correlated in the bg sample
-            bgcorrs = self.significantCorrelations('bg', highbgcorr)
-            
-            # mask out these pairs
-            for i,j in bgcorrs:
+       
+        
+        if len(ignorepairs) > 0:
+            for i,j in ignorepairs:
                 self.ex_correlations[i,j] = np.ma.masked
                 self.ex_correlations[j,i] = np.ma.masked
-                
-                if verbal and i not in allinvalid and j not in allinvalid:
-                    c = self.bg_correlations[i,j]
-                    print( "Pair ({0},{1}) ignored: correlated in bg w/ chi2={2:.1f}, comut={3}".format(i+1,j+1,c, self.bg_comutarr[i,j]) )
-            
 
-        # perform apc correction after bad values are removed
+                if verbal:
+                    print("Pair ({0},{1}) ignored".format(i+1,j+1))
+
+
+        # perform apc correction
         if self.corrtype == 'apc':
             self.apcCorrection('ex')
+        
+
+        # compute z-scores of ex matrix
+        self.computeZscores()
+
+
+        # now cross-reference and remove bg-correlated pairs
+        self.maskBGcorrelated(highbgcorr=highbgcorr, invalid=allinvalid, verbal=verbal)
+
+
+
+
+
+    def maskBGcorrelated(self, highbgcorr=10.83, invalid=[], verbal=False):
+        """mask positions in ex_correlations and ex_zscores that are correlated
+        in the bg sample and which have higher mi"""
+
+
+        if self.bg_readarr is None:
+            return
+
+        # compute bg correlations and get pairs that are significantly correlated
+        self._correlationMatrix('bg', self.corrbuffer, 10000, 10)
+        bgcorrs = self.significantCorrelations('bg', highbgcorr)
          
+
+        # search through significant correlations
+        for i,j in bgcorrs:
+
+            # compute mi of ex and bg samples
+            exmi = self._mutualinformation(self.ex_readarr[i,j], self.ex_inotjarr[i,j],
+                                           self.ex_inotjarr[j,i], self.ex_comutarr[i,j])
+            bgmi = self._mutualinformation(self.bg_readarr[i,j], self.bg_inotjarr[i,j],
+                                           self.bg_inotjarr[j,i], self.bg_comutarr[i,j])
+            
+            if 5*bgmi > exmi:
+                
+                # look to see if i,j was significant and if so print
+                excorr = self.ex_correlations[i,j]
+                if verbal and i not in invalid and j not in invalid and excorr>=23.9:
+                    outstr = 'Correlated pair ({0},{1}) w/ chi2={2:.1f} ignored'.format(i+1, j+1, excorr)
+                    outstr += ': correlated in BG w/ chi2={0:.1f}'.format(self.bg_correlations[i,j])
+                    print(outstr)        
+                
+                # mask out values
+                self.ex_correlations[i,j] = np.ma.masked
+                self.ex_correlations[j,i] = np.ma.masked
+                self.ex_zscores[i,j] = np.ma.masked
+                self.ex_zscores[j,i] = np.ma.masked
+                
+
 
 
     def significantCorrelations(self, prefix, chi2cut, sign=-1):
@@ -620,7 +657,7 @@ class RINGexperiment(object):
 
         returns list of (i,j) pairs
         """
-       
+
         seqlen = self.getMaxArrayIndex()
        
         corrmat = getattr(self, prefix+'_correlations')
@@ -628,12 +665,11 @@ class RINGexperiment(object):
         corrs = []
         for i in xrange(seqlen):
             for j in xrange(i, seqlen):
-                
                 # this will automatically skip masked out values
                 if corrmat[i,j] >= chi2cut and self.correlationsign(i,j,prefix) >= sign:
                     corrs.append((i,j))
 
-
+        
         return corrs
 
 
@@ -653,12 +689,13 @@ class RINGexperiment(object):
         # compute means and std for z-score calculation
         corrmean = corrmat.mean(axis=0)
         corrstd = corrmat.std(axis=0)
-        
+        counts = corrmat.count(axis=0)
+
         seqlen = self.getMaxArrayIndex()
         
         for i in xrange(seqlen):
-            for j in xrange(i, seqlen):
-                if not corrmat.mask[i,j]:
+            for j in xrange(i+1, seqlen):
+                if not corrmat.mask[i,j] and counts[i]>2 and counts[j]>2:
                     zscores[i,j] = (corrmat[i,j]-corrmean[i])/corrstd[i]
                     zscores[j,i] = (corrmat[i,j]-corrmean[j])/corrstd[j]
 
@@ -671,9 +708,56 @@ class RINGexperiment(object):
         """Return the mean zscore at i,j"""
         return (self.ex_zscores[i,j]+self.ex_zscores[j,i])/2
 
+    
+    def significantDifference(self, i, j, comp_tot, comp_b, comp_c, comp_d):
+        """Compute whether the (i,j) contigency table is different from the passed
+        contigency table (tot, b, c, d). Significant difference is computed using
+        the G-test"""
+        
+        
+        if self.ex_readarr[i,j] == 0 or comp_tot == 0:
+            return -1
+
+        
+        def _g(obs, e1, e2, N):
+            
+            if obs == 0: obs = 0.1
+            if e1 == 0: e1 = 0.1
+            if e2 == 0: e2 = 0.1
+
+            return obs*np.log( obs / ((e1*e2)/N))
+    
+
+        # compute 'a' component
+        self_a = self.ex_readarr[i,j]-self.ex_inotjarr[i,j]-self.ex_inotjarr[j,i]-self.ex_comutarr[i,j]
+        comp_a = comp_tot-comp_b-comp_c-comp_d
+                
+        A = float(self_a + comp_a)
+        B = float(self.ex_inotjarr[i,j] + comp_b)
+        C = float(self.ex_inotjarr[j,i] + comp_c)
+        D = float(self.ex_comutarr[i,j] + comp_d)
+        E = float(self.ex_readarr[i,j]) 
+        F = float(comp_tot)
+        N = float(E+F)
+        
+        ng = _g(self_a, A, E, N)
+        ng += _g(comp_a, A, F, N)
+        ng += _g(self.ex_inotjarr[i,j], B, E, N)
+        ng += _g(comp_b, B, F, N)
+        ng += _g(self.ex_inotjarr[j,i], C, E, N)
+        ng += _g(comp_c, C, F, N)
+        ng += _g(self.ex_comutarr[i,j], D, E, N)
+        ng += _g(comp_d, D, F, N)
+
+        if ng < 0:
+            print('WARNING!!! Negative Chi2; {} {} {} {} ; {} {} {} {}'.format(selftotal, self.ex_inotjarr[i,j], self.ex_inotjarr[j,i], self.ex_comutarr[i,j], tot,b,c,d))
+
+        
+        return 2*ng
 
 
-    def writeCorrelations(self, outfile, chi2cut=20, sign=-1):
+
+    def writeCorrelations(self, outfile, chi2cut=23.9, sign=-1):
         """Write out correlations in a human readable format that also conforms
         to pairing probability (dotplot) file format for subsequent plotting.
     
@@ -754,7 +838,7 @@ def parseArguments():
     parser.add_argument('--untreated', help='Path to untreated (bg) mutation file. Used to remove high bg positions and bg correlations')
     
     parser.add_argument('--window', type=int, default=1, help="Nt window over which to compute correlations (default = 1)")
-    parser.add_argument('--chisq_cut', type=float, default=20.0, help="Set chisq cutoff (default = 20)")
+    parser.add_argument('--chisq_cut', type=float, default=23.9, help="Set chisq cutoff (default = 23.9)")
     parser.add_argument('--mindepth', type=int, default=10000, help='Minimum pairwise read depth allowed for calculating correlations (default = 10000)')
     parser.add_argument('--mincount', type=int, default=50, help="""Minimum required count in contigency table 
                         (default = 50). Nt pairs with fewer than this number of comutations are ignored""")
@@ -762,7 +846,7 @@ def parseArguments():
     parser.add_argument('--metric', type=str, default='apc', help="""Metric to use for computing correlations. 
                         options are chi/g/apc (Chi, G-test, or APC corrected G-test). (default = apc)""")
     
-    parser.add_argument('--mincorrdistance', type=int, default=5, help="""Minimum distance allowed between correlations (default=5)""")
+    parser.add_argument('--mincorrdistance', type=int, default=6, help="""Minimum distance allowed between correlations (default=6)""")
 
     parser.add_argument('--mincoverage', type=float, default=0, help="""Quality filter reads by requiring a minimum 
                         number of positional matches to reference sequence.

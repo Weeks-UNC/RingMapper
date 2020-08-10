@@ -25,8 +25,6 @@ import numpy as np
 
 from ringmapper import RINGexperiment
 from ReactivityProfile import ReactivityProfile
-#from arcPlot import ArcPlot
-
 
 
 class PairMapper(object):
@@ -34,7 +32,7 @@ class PairMapper(object):
 
 
     def __init__(self, ringexp, profile, 
-                       chi2cut=20, 
+                       chi2cut=23.9, 
                        primary_reactivity=0.2, primary_zscore=2.0,
                        secondary_reactivity=0.5, secondary_zscore=2.0,
                        maxGU=None, maxNC=0):
@@ -55,20 +53,20 @@ class PairMapper(object):
        
         self.computePrimaryCorrs(primary_reactivity, primary_zscore)
         self.computeSecondaryCorrs(secondary_reactivity, secondary_zscore)
-
-
+        
 
     def computePrimaryCorrs(self, primary_reactivity, primary_zscore):
         """Compute primary pair signals"""
-
+        
         corrs = self.getStrongest()
-
+        
         # now need to filter by reactivity 
         corrs = self.filterReactive(corrs, primary_reactivity)
 
         # filter by zave
         corrs = self.filterZscore(corrs, primary_zscore)
-    
+        
+
         self.primary = corrs
 
     
@@ -121,6 +119,7 @@ class PairMapper(object):
 
     def getStrongest(self):
         """Return non-conflicting strongest correlations"""
+        
 
         # get list of strongest correlation at each nt
         corrdict = {}
@@ -134,7 +133,7 @@ class PairMapper(object):
                 corrdict[j] = (i,j, self.parent.ex_correlations[i,j])
             elif self.parent.ex_correlations[i,j] > corrdict[j][2]:
                 corrdict[j] = (i,j, self.parent.ex_correlations[i,j])
-       
+        
 
         # eliminate correlations that are not mutually strongest
         ntkeys = corrdict.keys()
@@ -148,7 +147,7 @@ class PairMapper(object):
                 del corrdict[k]
             elif k == j and (i not in corrdict or corrdict[i] != corrdict[k]):
                 del corrdict[k]
-
+        
 
         # function to test if two correlations are parallel
         def parallel(c1, c2):
@@ -227,6 +226,7 @@ class PairMapper(object):
         # get all positive correlations 
         corrs = self.parent.significantCorrelations('ex', chi2cut, sign=1)
         
+
         compcorrs = []
         
         for i,j in corrs:
@@ -281,7 +281,7 @@ class PairMapper(object):
 
 
 
-    def writePairBonusFile(self, filepath, chi2cut, maxNC=1, scale=0.5, intercept=0):
+    def writePairBonusFile(self, filepath, chi2cut=23.9, maxNC=1, scale=0.5, intercept=0, fileformat=1):
         """Write matrix of pairing bonuses for use in RNAstructure folding"""
 
         seqlen = len(self.parent.sequence)
@@ -302,13 +302,23 @@ class PairMapper(object):
 
         # make symmetric
         pairmat += pairmat.transpose()
+        
+        if fileformat==0:
+            np.savetxt(filepath, pairmat, fmt='%.4f')
+        
+        else:
+            with open(filepath,'w') as out:
+                out.write('; i j bonus\n')
+                for i in xrange(pairmat.shape[0]):
+                    for j in xrange(i+1, pairmat.shape[0]):
+                        if pairmat[i,j] != 0:
+                            out.write('{0} {1} {2:.7f}\n'.format(i+1, j+1, pairmat[i,j]))
 
-        np.savetxt(filepath, pairmat, fmt='%.4f')
 
 
 
     def checkMutationRates(self, depthcut=10000, primary_reactivity = 0.2):
-        """Check comutation rates to make sure they are high enough to accurately measure pairs"""
+        """Check comutation rates and read depths to make sure they are high enough to accurately measure pairs"""
         
         seqlen = self.parent.ex_readarr.shape[0]
         
@@ -372,64 +382,67 @@ class PairMapper(object):
         median_unreact_comut = np.ma.median(comuts)
         median_unreact_count = comuts.count()
        
-
+        allpassed = True
+        
+        # mutation rate checks
         if median_comut < 5e-4 or median_unreact_comut < 1e-4:
             sys.stdout.write('******************************\n')
             sys.stdout.write('WARNING: Low comutation rates!\n') 
             sys.stdout.write('\tMedian for all nts = {0:.2e}  ({1} pairs)\n'.format(median_comut, median_count))
             sys.stdout.write('\tMedian for unreactive nts = {0:.2e}  ({1} pairs)\n'.format(median_unreact_comut, median_unreact_count))
             sys.stdout.write('PAIR-MaP data likely untrustworthy\n') 
-
-            return False
-
+         
+            allpassed = False
+        
         else:
             sys.stdout.write("Reactivity rate quality checks passed\n")
             sys.stdout.write('\tMedian for all nts = {0:.2e}  ({1} pairs)\n'.format(median_comut, median_count))
             sys.stdout.write('\tMedian for unreactive nts = {0:.2e}  ({1} pairs)\n'.format(median_unreact_comut, median_unreact_count))
-            return True
+        
+        
+        # read depth checks
+        median_depth = np.median(np.diag(self.parent.ex_readarr))
 
-
-
+        if median_depth<400000:
+            sys.stdout.write('******************************\n')
+            sys.stdout.write("WARNING: Low read depths!\n")
+            sys.stdout.write("Median read depth = {}!\n".format(median_depth))
+            allpassed = False
+ 
+        return allpassed
     
-    def plot(self, output, minz=2, maxz=6):
+
+
+    def plot(self, output, minz=2, maxz=6, ct=None):
         """Plot reactivity data and primary+secondary pairmap correlations"""
         
+        from pmanalysis import PairMap
+        from arcPlot import ArcPlot
+
         plot = ArcPlot()
 
         plot.reactprofile = self.profile.normprofile
         plot.reactprofileType = 'DMS'
-        plot.seq = self.profile.sequence
+        plot.seq = ''.join(self.profile.sequence)
+        
+        
+        pmobj = PairMap()
+        pmobj.primary = [(i+1,j+1,0, self.parent.getMeanZ(i,j)) for i,j in self.primary]
+        pmobj.secondary = [(i+1,j+1,0, self.parent.getMeanZ(i,j)) for i,j in self.secondary]
+        pmobj.window = self.parent.window
 
-    
-        corrs = [(i+1,j+1, self.parent.getMeanZ(i,j)) for i,j in self.secondary]
-        
-        plot.plotAlphaGradient(corrs, (30,194,255), (0.1,0.5), minz, maxz, 
-                               window=self.parent.window, panel=-1)
+        plot.addPairMap( pmobj, panel=-1)
+ 
 
-        corrs = [(i+1,j+1, self.parent.getMeanZ(i,j)) for i,j in self.primary]
-        
-        plot.plotAlphaGradient(corrs, (0, 0, 243), (0.5,0.9), minz, maxz, 
-                               window=self.parent.window, panel=-1)
-        
-        
-        # check if we need to throw error message
-        if self.comut_rates[0] < 5e-4 or self.comut_rate[1] < 1e-4:
-            msg = 'WARNING! Low comutation rates!\n'
-            msg += '\tMedian for all nts = {0:.2e}\n'.format(self.comut_rates[0])
-            msg += '\tMedian for unreactive nts = {0:.2e}\n'.format(self.comut_rates[1])
-            msg += 'PAIR-MaP data likely untrustworthy\n'
+        msg=None
+        if ct is not None:
+            plot.addCT(ct)
+            
+            p,s = pmobj.ppvsens_duplex(ct, ptype=1, profile=self.profile.normprofile)
+            msg = "PPV={0:.0f}  Sens={1:.0f}".format(p*100, s*100)
 
-            msg_pos = (0.5, 0.7)
-            fontsize = len(self.profile.normprofile)/10.
-            msg_kwargs = {'fontsize':fontsize, 'bbox':dict(facecolor='red', alpha=0.3)}
-        else:
-            msg = 'Median for all nts = {0:.2e}\n'.format(self.comut_rates[0])
-            msg += 'Median for unreactive nts = {0:.2e}\n'.format(self.comut_rates[1])
-            msg_pos = (0,1)
-            msg_kwargs = {'fontsize':12}
-        
 
-        plot.writePlot(output, msg=msg, msg_pos=msg_pos, msg_kwargs=msg_kwargs)
+        plot.writePlot(output, msg=msg)
 
 
 
@@ -488,7 +501,7 @@ def parseArguments():
                                            (i.e. if 150 is passed, reads will be required to have at least 150 valid matches).
                                            By default, this filter is disabled.""")
 
-    optional.add_argument('--chisq_cut', type=float, default=20.0, help="Set chisq cutoff (default = 20)")
+    optional.add_argument('--chisq_cut', type=float, default=23.9, help="Set chisq cutoff (default = 23.9)")
 
 
     optional.add_argument('--highbg_rate', type=float, default = 0.02, help="""Ignore nt position with bg reactivity above
@@ -498,8 +511,8 @@ def parseArguments():
                                            sample, with correlation determined via this significance value 
                                            (default=10.83 --> P=1e-3)""")
 
-    optional.add_argument('--mincorrdistance', type=int, default=5, help="""Minimum distance allowed between correlations 
-                                               (default = 5)""")
+    optional.add_argument('--mincorrdistance', type=int, default=6, help="""Minimum distance allowed between correlations 
+                                               (default = 6)""")
     
     optional.add_argument('--mindepth', type=int, default=10000, help="""Minimum pairwise read depth allowed for calculating 
                                         correlations (default = 10000)""")
@@ -515,6 +528,9 @@ def parseArguments():
                                       (default = 0.5)""")
     optional.add_argument('--secondary_zscore', type=float, default=2.0, help="""Zscore cutoff for secondary correlations
                                       (default = 2.0)""")
+    
+    optional.add_argument('--override_qualcheck', action='store_true', help="""Override quality checks and perform PAIR-MaP analysis despite poor data quality""")
+
 
     parser._action_groups.append(optional)
 
@@ -597,9 +613,6 @@ if __name__ == '__main__':
                                      highbgcorr = args.highbg_corr,
                                      verbal = verbal)
     
-    # compute zscores
-    ringexp.computeZscores()
-
     # at this point, all the major calculations have been done
     
     # write all correlations to file
@@ -614,13 +627,13 @@ if __name__ == '__main__':
                        secondary_zscore=args.secondary_zscore)
     
 
-    if pairs.passfilter:
+    if pairs.passfilter or args.override_qualcheck:
 
         # write out pairmap data
         pairs.writePairs('{}-pairmap.txt'.format(args.out))
     
         # write out folding restraint matrix
-        pairs.writePairBonusFile('{}.bp'.format(args.out), args.chisq_cut, maxNC=1)
+        pairs.writePairBonusFile('{}.bp'.format(args.out), chi2cut=args.chisq_cut, maxNC=1)
 
 
     # make plot
