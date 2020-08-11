@@ -1,0 +1,62 @@
+
+Version 1.1
+August 10, 2020 	
+Anthony Mustoe <anthony.mustoe@bcm.edu>
+***********************************************************************
+
+Notable changes
+---------------
+Several modest changes have been made to the core RingMapper algorithm
+relating to how positions that are observed in the untreated sample 
+(background correlations) are treated/removed. Thus, for most datasets,
+v1.1 ringmapper/pairmapper will yeild slightly different results. 
+Benchmarking on the datasets published in Mustoe et al, PNAS 2019 revealed
+that the v1.1 algorithm gives comparable result. These changes are briefly
+summarized below:
+
+-Previously, all nt pairs exhibiting correlations in the untreated sample
+were masked from analysis prior to APC correction and Z-score calculation.
+Because APC and Z-score calculation depends on all positions, masking prior 
+to calculation can impact APC / Z-scores. Now, APC and Z-scores are computed
+*prior* to background correlation sampling, removing dependence on the 
+untreated sample. Note, however, that this comes with the tradeoff that strong 
+background correlations can potentially skew APC / Z-scores.
+
+-The minimum comutation count (mincount) needed to call a bg correlation in
+the untreated sample was increased to 10 from 5 (increasing robustness).
+
+-Previsouly, any i,j pair observed as significantly correlated in the
+untreated sample was masked, irrespective of the strength of the signal
+observed in the modified sample. This can cause undesirable behavior when working 
+with very deeply sequenced untreated datasets, which can reveal a large number 
+of weak (but significant) background correlations. Now, a test is performed
+comparing the strength of background correlations to modified correlations,
+and only background correlations that are similar in strength to modified
+correlations are masked. Specifically, only positions with unt_MI > 0.2*mod_MI 
+are masked, where unt_MI is the mutual information observed in the untreated
+sample and mod_MI is the mutual information observed in the modified sample.
+
+
+Other minor changes/updates
+---------------------------
+
+-A bug was fixed were nt Z-scores could be computed even if there was only 1
+defined correlation for that nt. Now, Z-score are only computed if a nt has
+at least 2 correlations defined.
+
+-The default chi2 cutoff for calling correlations is increased to 23.9
+(previously 20)
+
+-Default mincorrdistance is increased to 6 (previously 5)
+
+-By default, pairmapper .bp constraint files are written in pair format rather
+than matrix format
+
+-Read depth >400,000 is added as an automatic quality check in PAIR-MaP analysis
+
+-override_qualcheck option added to pairmmaper to override quality filtering and
+write pairmapper files despite failure of one on more quality checks
+
+-added significantDifference function for computing differences between contigency tables
+
+

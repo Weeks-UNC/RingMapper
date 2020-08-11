@@ -1,9 +1,9 @@
-# RingMapper
+# RingMapper v1.1
 
 Code for performing RING-MaP and PAIR-MaP analysis
 (RingMapper & PairMapper)
 
-*Copywrite 2019 Anthony Mustoe*. This project is licensed under the terms of the MIT license
+*Copywrite 2019,2020 Anthony Mustoe*. This project is licensed under the terms of the MIT license
 
 Contact: anthony.mustoe@bcm.edu
 
