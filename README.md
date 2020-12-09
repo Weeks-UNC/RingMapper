@@ -53,7 +53,7 @@ Dependencies
 ------------
 - python 2.7, numpy
 - cython (developed using v0.23)
-
+- ShapeMapper version 2.1.4 or higher (for pre-processing data)
 
 Citation
 --------
