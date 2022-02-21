@@ -531,6 +531,7 @@ def parseArguments():
     
     optional.add_argument('--override_qualcheck', action='store_true', help="""Override quality checks and perform PAIR-MaP analysis despite poor data quality""")
     optional.add_argument('--notDMS', action='store_true', default=False, help="Overrides assumptions that data comes from a DMS experiment (default=False)")
+    optional.add_argument('--sub_contigency', type=int, default=None, help="""Downsample contingency table for random priming data""")
 
     parser._action_groups.append(optional)
 
@@ -612,7 +613,8 @@ if __name__ == '__main__':
                                      ignorents = args.ignorents,
                                      highbgrate = args.highbg_rate,
                                      highbgcorr = args.highbg_corr,
-                                     verbal = verbal)
+                                     verbal = verbal,
+                                     sub_contigency=args.sub_contigency)
     
     # at this point, all the major calculations have been done
     

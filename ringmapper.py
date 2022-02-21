@@ -499,8 +499,20 @@ class RINGexperiment(object):
         setattr(self, prefix+'_correlations', miP)
     
 
+    def downsample_contingency(n, b, d, c, sampling_rate):
+        """bootstrap downsampling of contingency matrix
+        args: n(int) = codepth of i and j
+              b(int) = i not j events
+              c(int) = j not i events
+              d(int) = i and j events
+        returns: 4 integers n, b, c, d"""
+        a = n - (b + c + d)
+        if a+b+c+d > sampling_rate:
+            a, b, c, d = np.random.multinomial(sampling_rate, [a/n, b/n, c/n, d/n])
+            n = sampling_rate
+        return n, b, c, d
 
-    def _correlationMatrix(self, prefix, corrbuffer, mindepth, mincount):
+    def _correlationMatrix(self, prefix, corrbuffer, mindepth, mincount, sub_contigency):
         """ Calculate the correlation for every position
         prefix        = data matrix to use (ex, bg)
         corrbuffer    = distance between correlations
@@ -521,10 +533,13 @@ class RINGexperiment(object):
         cmat[:] = np.nan
         
         for i in xrange(seqlen):
-            for j in xrange(i+corrbuffer, seqlen):               
-                if read[i,j]>=mindepth and min(inotj[i,j], inotj[j,i], comut[i,j])>=mincount:
-                    cmat[i,j] = self.correlationfunc(read[i,j], inotj[i,j], inotj[j,i], comut[i,j])
-                    cmat[j,i] = cmat[i,j] 
+            for j in xrange(i+corrbuffer, seqlen):
+                n, b, c, d = read[i, j], inotj[i, j], inotj[j, i], comut[i, j]
+                if sub_contingency is not None:
+                    n, b, c, d = self.downsample_contingency(n, b, c, d, sub_contingency)
+                if n >= mindepth and min(b, c, d) >= mincount:
+                    cmat[i, j] = self.correlationfunc(n, b, c, d)
+                    cmat[j, i] = cmat[i, j]
         
 
         # set correlations matrix to masked array with non-filled (nan) values masked out
@@ -535,7 +550,7 @@ class RINGexperiment(object):
 
     def computeCorrelationMatrix(self, corrbuffer=6, mindepth=10000, mincount=50,
                                  ignorents = [], ignorepairs = [], highbgrate=0.02, 
-                                 highbgcorr=10.83, verbal=True):
+                                 highbgcorr=10.83, verbal=True, sub_contigency=None):
         """Compute the correlation matrices and mask invalid entries
         corrbuffer     = buffer to keep between correlations (i.e. minimum correlation distance)
         mindepth       = minimum pairwise read depth
@@ -553,7 +568,7 @@ class RINGexperiment(object):
         self.highbgrate = highbgrate*self.window
 
         # compute correlation matrix
-        self._correlationMatrix('ex', self.corrbuffer, mindepth, mincount)
+        self._correlationMatrix('ex', self.corrbuffer, mindepth, mincount, sub_contigency=sub_contigency)
         
             
         # mask out user specified values
@@ -602,13 +617,14 @@ class RINGexperiment(object):
 
 
         # now cross-reference and remove bg-correlated pairs
-        self.maskBGcorrelated(highbgcorr=highbgcorr, invalid=allinvalid, verbal=verbal)
+        self.maskBGcorrelated(highbgcorr=highbgcorr, invalid=allinvalid,
+                              verbal=verbal, sub_contigency=sub_contigency)
 
 
 
 
 
-    def maskBGcorrelated(self, highbgcorr=10.83, invalid=[], verbal=False):
+    def maskBGcorrelated(self, highbgcorr=10.83, invalid=[], verbal=False, sub_contigency=None):
         """mask positions in ex_correlations and ex_zscores that are correlated
         in the bg sample and which have higher mi"""
 
@@ -617,7 +633,7 @@ class RINGexperiment(object):
             return
 
         # compute bg correlations and get pairs that are significantly correlated
-        self._correlationMatrix('bg', self.corrbuffer, 10000, 10)
+        self._correlationMatrix('bg', self.corrbuffer, 10000, 10, sub_contigency)
         bgcorrs = self.significantCorrelations('bg', highbgcorr)
          
 
@@ -872,6 +888,9 @@ def parseArguments():
                          from inputFile (default=-1 [disabled]).""") 
 
     parser.add_argument('--writematrixfile', help="Write mutation matrices to file (provide prefix)")
+
+    parser.add_argument('--sub_contigency', type=int, default=None,
+                          help="""Downsample contingency table for random priming data""")
     
     
 
@@ -937,7 +956,8 @@ if __name__ == '__main__':
                                      ignorents = args.ignorents,
                                      highbgrate = args.highbg_rate,
                                      highbgcorr = args.highbg_corr, 
-                                     verbal = verbal)
+                                     verbal = verbal,
+                                     sub_contigency=args.sub_contingency)
     
     ringexp.writeCorrelations(args.outputFile, chi2cut=args.chisq_cut)
  
