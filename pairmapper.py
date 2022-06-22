@@ -136,7 +136,7 @@ class PairMapper(object):
         
 
         # eliminate correlations that are not mutually strongest
-        ntkeys = corrdict.keys()
+        ntkeys = list(corrdict.keys())
         for k in ntkeys:
             # need to check since we are deleting things
             if k not in corrdict:
@@ -167,7 +167,7 @@ class PairMapper(object):
             # scan up and downstream of each correlation leg to see if there is 
             # a stronger conflicting correlation
             keep = True
-            for i in range(1-self.parent.window,0)+range(1,self.parent.window):
+            for i in list(range(1-self.parent.window,0))+list(range(1,self.parent.window)):
                 
                 if k+i in corrdict and not parallel(corrdict[k], corrdict[k+i]) \
                                    and corrdict[k+i][2] > corrdict[k][2]:
@@ -309,8 +309,8 @@ class PairMapper(object):
         else:
             with open(filepath,'w') as out:
                 out.write('; i j bonus\n')
-                for i in xrange(pairmat.shape[0]):
-                    for j in xrange(i+1, pairmat.shape[0]):
+                for i in range(pairmat.shape[0]):
+                    for j in range(i+1, pairmat.shape[0]):
                         if pairmat[i,j] != 0:
                             out.write('{0} {1} {2:.7f}\n'.format(i+1, j+1, pairmat[i,j]))
 
@@ -555,7 +555,7 @@ def parseArguments():
             for x in spl:
                 if ':' in x:
                     xspl = x.split(':')
-                    ig.extend(range(int(xspl[0])-1, int(xspl[1])))
+                    ig.extend(list(range(int(xspl[0])-1, int(xspl[1]))))
                 else:
                     ig.append(int(x)-1)  # correct for 1-indexing of input 
         except ValueError:

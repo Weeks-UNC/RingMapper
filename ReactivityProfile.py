@@ -577,7 +577,7 @@ class ReactivityProfile(object):
         if filepath is not None:
             
             if self.backprofile is not None:
-                print('Overiding backprofile with profile from:{0}'.format(filepath))
+                print(('Overiding backprofile with profile from:{0}'.format(filepath)))
 
 
             prof = ReactivityProfile(filepath, **kwargs)

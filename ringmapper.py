@@ -130,7 +130,7 @@ class RINGexperiment(object):
 
         
         if verbal:
-            print("Sequence length={0} read from {1}".format(len(seq), fasta))
+            print(("Sequence length={0} read from {1}".format(len(seq), fasta)))
 
         return seq    
 
@@ -145,7 +145,7 @@ class RINGexperiment(object):
         
         if self.window is None:
             self.window = window
-            if verbal: print("Computing correlations using window={0}".format(self.window))
+            if verbal: print(("Computing correlations using window={0}".format(self.window)))
 
         elif window != self.window:
             raise ValueError("Window already set to {0}; passed window={1}".format(self.window, window))
@@ -160,10 +160,10 @@ class RINGexperiment(object):
         filetype = self._filetype(datafile)
         
         if filetype > 0:
-            if verbal: print("Filling {0} arrays from {1}".format(prefix, datafile))
+            if verbal: print(("Filling {0} arrays from {1}".format(prefix, datafile)))
             self._fillMatrices(datafile, read, comut, inotj, filetype, verbal=verbal, **kwargs)
         else:
-            if verbal: print("Filling {0} arrays from OLD format file {1}".format(prefix, datafile))
+            if verbal: print(("Filling {0} arrays from OLD format file {1}".format(prefix, datafile)))
             self._fillMatrices_Old(datafile, read, comut, inotj, verbal=verbal, **kwargs)
 
 
@@ -224,14 +224,14 @@ class RINGexperiment(object):
             mincoverage *= validpos
         
         if verbal and mincoverage>0:
-            print("Read length filtering ON\n\tMatch threshold = {0}".format(mincoverage))
+            print(("Read length filtering ON\n\tMatch threshold = {0}".format(mincoverage)))
 
         fillstats = readMutStrings.fillMatrices(datafile, read, comut, inotj, self.window, mincoverage, fileformat, undersample)
     
         if verbal:
             print("Input summary:")
-            print("\t{0} reads in {1}".format(fillstats[0], datafile))
-            print("\t{0} reads passed filtering".format(fillstats[1]))
+            print(("\t{0} reads in {1}".format(fillstats[0], datafile)))
+            print(("\t{0} reads passed filtering".format(fillstats[1])))
             
 
 
@@ -250,10 +250,10 @@ class RINGexperiment(object):
         
         if verbal:
             print("Post-processing old ShapeMapper called mutations:")
-            print("\tPhred cutoff = {0}".format(phred_cut))
-            print("\tMut. event separation = {0}".format(mutseparation))
-            print("\tMaximum deletion cutoff = {0}".format(maxdel))
-            print("\tAccepted mut. events = {0}".format(accepted_events))
+            print(("\tPhred cutoff = {0}".format(phred_cut)))
+            print(("\tMut. event separation = {0}".format(mutseparation)))
+            print(("\tMaximum deletion cutoff = {0}".format(maxdel)))
+            print(("\tAccepted mut. events = {0}".format(accepted_events)))
 
 
         fillstats = readMutStrings.fillMatrices_Old(datafile, read, comut, inotj, self.window,
@@ -262,8 +262,8 @@ class RINGexperiment(object):
 
         if verbal:
             print("Input summary:")
-            print("\t{0} reads in {1}".format(fillstats[0], datafile))
-            print("\t{0} reads passed filtering".format(fillstats[1]))
+            print(("\t{0} reads in {1}".format(fillstats[0], datafile)))
+            print(("\t{0} reads passed filtering".format(fillstats[1])))
            
     
 
@@ -284,7 +284,7 @@ class RINGexperiment(object):
                 arr = getattr(self, prefix+'_readarr')
             
                 last = 0
-                for i in xrange(arr.shape[0]):
+                for i in range(arr.shape[0]):
                     if arr[i,i] != 0:
                         last = i
             
@@ -301,7 +301,7 @@ class RINGexperiment(object):
         comutarr = getattr(self, prefix+'_comutarr')
 
         ntlist = []
-        for i in xrange( self.getMaxArrayIndex() ):
+        for i in range( self.getMaxArrayIndex() ):
         
             if readarr[i,i] == 0:
                 continue
@@ -322,7 +322,7 @@ class RINGexperiment(object):
         comutarr = getattr(self, prefix+'_comutarr')
 
         ntlist = []
-        for i in xrange( self.getMaxArrayIndex() ):
+        for i in range( self.getMaxArrayIndex() ):
         
             if readarr[i,i] == 0:
                 continue
@@ -520,8 +520,8 @@ class RINGexperiment(object):
         cmat = np.empty((seqlen, seqlen), dtype=np.float32)
         cmat[:] = np.nan
         
-        for i in xrange(seqlen):
-            for j in xrange(i+corrbuffer, seqlen):               
+        for i in range(seqlen):
+            for j in range(i+corrbuffer, seqlen):               
                 if read[i,j]>=mindepth and min(inotj[i,j], inotj[j,i], comut[i,j])>=mincount:
                     cmat[i,j] = self.correlationfunc(read[i,j], inotj[i,j], inotj[j,i], comut[i,j])
                     cmat[j,i] = cmat[i,j] 
@@ -560,7 +560,7 @@ class RINGexperiment(object):
         for i in ignorents:
             self.ex_correlations[i,:] = np.ma.masked
             self.ex_correlations[:,i] = np.ma.masked
-            if verbal: print ("Nt {0} ignored: specified by user".format(i+1))
+            if verbal: print(("Nt {0} ignored: specified by user".format(i+1)))
         
         # set containing masked out nts
         allinvalid = set(ignorents)
@@ -577,7 +577,7 @@ class RINGexperiment(object):
                 
                 if verbal and i not in allinvalid:
                     e = float(self.bg_comutarr[i,i])/self.bg_readarr[i,i]
-                    print( "Nt {0} ignored: bg_rate={1:.3f}".format(i+1,e) )
+                    print(( "Nt {0} ignored: bg_rate={1:.3f}".format(i+1,e) ))
             
             # add highbgnts to invalid nts
             allinvalid.update(highbgnts)
@@ -589,7 +589,7 @@ class RINGexperiment(object):
                 self.ex_correlations[j,i] = np.ma.masked
 
                 if verbal:
-                    print("Pair ({0},{1}) ignored".format(i+1,j+1))
+                    print(("Pair ({0},{1}) ignored".format(i+1,j+1)))
 
 
         # perform apc correction
@@ -663,8 +663,8 @@ class RINGexperiment(object):
         corrmat = getattr(self, prefix+'_correlations')
         
         corrs = []
-        for i in xrange(seqlen):
-            for j in xrange(i, seqlen):
+        for i in range(seqlen):
+            for j in range(i, seqlen):
                 # this will automatically skip masked out values
                 if corrmat[i,j] >= chi2cut and self.correlationsign(i,j,prefix) >= sign:
                     corrs.append((i,j))
@@ -693,8 +693,8 @@ class RINGexperiment(object):
 
         seqlen = self.getMaxArrayIndex()
         
-        for i in xrange(seqlen):
-            for j in xrange(i+1, seqlen):
+        for i in range(seqlen):
+            for j in range(i+1, seqlen):
                 if not corrmat.mask[i,j] and counts[i]>2 and counts[j]>2:
                     zscores[i,j] = (corrmat[i,j]-corrmean[i])/corrstd[i]
                     zscores[j,i] = (corrmat[i,j]-corrmean[j])/corrstd[j]
@@ -750,7 +750,7 @@ class RINGexperiment(object):
         ng += _g(comp_d, D, F, N)
 
         if ng < 0:
-            print('WARNING!!! Negative Chi2; {} {} {} {} ; {} {} {} {}'.format(selftotal, self.ex_inotjarr[i,j], self.ex_inotjarr[j,i], self.ex_comutarr[i,j], tot,b,c,d))
+            print(('WARNING!!! Negative Chi2; {} {} {} {} ; {} {} {} {}'.format(selftotal, self.ex_inotjarr[i,j], self.ex_inotjarr[j,i], self.ex_comutarr[i,j], tot,b,c,d)))
 
         
         return 2*ng
@@ -817,7 +817,7 @@ class RINGexperiment(object):
             for a in ('readarr', 'comutarr', 'inotjarr'):
                 setattr(self, 'bg_'+a, np.loadtxt('{0}_bg_{1}.mat'.format(prefix, a)))
         except IOError:
-            print('WARNING: no bg matrices found for {0}'.format(prefix))
+            print(('WARNING: no bg matrices found for {0}'.format(prefix)))
 
 
         
@@ -890,7 +890,7 @@ def parseArguments():
             for x in spl:
                 if ':' in x:
                     xspl = x.split(':')
-                    ig.extend(range(int(xspl[0])-1, int(xspl[1])))
+                    ig.extend(list(range(int(xspl[0])-1, int(xspl[1]))))
                 else:
                     ig.append(int(x)-1)  # correct for 1-indexing of input 
         except ValueError:
