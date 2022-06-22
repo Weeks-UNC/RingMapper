@@ -85,7 +85,7 @@ def fillMatrices(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, int[
 
 
     # open the file
-    cfile = fopen(inputFile, "r")
+    cfile = fopen(inputFile.encode('utf-8'), "r")
     if cfile == NULL:
         raise IOError(2, "No such file or directory: '{0}'".format(inputFile))
 
