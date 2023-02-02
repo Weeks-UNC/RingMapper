@@ -1,3 +1,23 @@
+Version 1.2
+August 25, 2022
+Anthony Mustoe <anthony.mustoe@bcm.edu>
+***********************************************************************
+
+-Eliminated need for mandatory untreated sample in pairmapper
+
+-Eliminated default reactivity normalization in pairmapper. It assumed 
+that users will use the Shapemapper2.2 --dms flag for processing for 
+most usage scenarios, which properly normalizes the data. To reproduce 
+functionality of prior pairmapper versions that perform internal normalization, 
+use the --renormalize flag.
+
+-Changed default reactivity filters to 0.15/0.4 for primary/secondary PAIRs
+(prior values were 0.2/0.5). This is optimized for shapemapper2.2 --dms
+
+-Changed default mincount to 10 (prior default was 50).
+
+
+
 
 Version 1.1
 August 10, 2020 	

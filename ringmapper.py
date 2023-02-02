@@ -533,7 +533,7 @@ class RINGexperiment(object):
     
 
 
-    def computeCorrelationMatrix(self, corrbuffer=6, mindepth=10000, mincount=50,
+    def computeCorrelationMatrix(self, corrbuffer=6, mindepth=10000, mincount=10,
                                  ignorents = [], ignorepairs = [], highbgrate=0.02, 
                                  highbgcorr=10.83, verbal=True):
         """Compute the correlation matrices and mask invalid entries
@@ -840,8 +840,8 @@ def parseArguments():
     parser.add_argument('--window', type=int, default=1, help="Nt window over which to compute correlations (default = 1)")
     parser.add_argument('--chisq_cut', type=float, default=23.9, help="Set chisq cutoff (default = 23.9)")
     parser.add_argument('--mindepth', type=int, default=10000, help='Minimum pairwise read depth allowed for calculating correlations (default = 10000)')
-    parser.add_argument('--mincount', type=int, default=50, help="""Minimum required count in contigency table 
-                        (default = 50). Nt pairs with fewer than this number of comutations are ignored""")
+    parser.add_argument('--mincount', type=int, default=10, help="""Minimum required count in contigency table 
+                        (default = 10). Nt pairs with fewer than this number of comutations are ignored""")
     
     parser.add_argument('--metric', type=str, default='apc', help="""Metric to use for computing correlations. 
                         options are chi/g/apc (Chi, G-test, or APC corrected G-test). (default = apc)""")

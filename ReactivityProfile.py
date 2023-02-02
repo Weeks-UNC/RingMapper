@@ -481,11 +481,11 @@ class ReactivityProfile(object):
                               
 
 
-    def normalize(self, DMS=False, byNT=False, name=None, normfactors = None, errfactors = None, **kwargs):
+    def normalize(self, eDMS=False, oldDMS=False, byNT=False, name=None, normfactors = None, errfactors = None, **kwargs):
         """normalize the profile; overwrites values in normprofile
         By default, normalization is done in a sequence agnostic way (SHAPE default)
         If byNT, nts are normalized independently
-        If DMS, nts are normalized w/ A+C and U+G on the same scale
+        If oldDMS, nts are normalized w/ A+C and U+G on the same scale
         If normfactors is passed, use these precomputed normalization factors
            (dict of w/ A,G,U,C as keys and norm factors as values)
         If normfactors is passed, use errfactors (optional)
@@ -523,9 +523,16 @@ class ReactivityProfile(object):
                     nfac, nerr = self.normMethod(self.reactivityByNt(nts=i, name=name))
                     normfactors[i] = nfac
                     errfactors[i] = nerr
+            
+
+            elif eDMS:
+                for i in ntorder:
+                    nfac, nerr = self.eDMS_normalization(self.reactivityByNt(nts=i, name=name))
+                    normfactors[i] = nfac
+                    errfactors[i] = nerr
 
 
-            elif DMS:
+            elif oldDMS:
                 mask = (self.sequence == 'A') | (self.sequence=='C')
                 nfac, nerr = self.norm90( normprof[mask] )
                 for i in ('A','C'):
@@ -552,9 +559,11 @@ class ReactivityProfile(object):
             normprof[mask] /= normfactors[i]
 
         self.normprofile = normprof
-
-        if DMS:
-            print("Renormalized data using DMS mode")
+        
+        if eDMS:
+            print("Renormalized data using eDMS mode")
+        elif oldDMS:
+            print("Renormalized data using oldDMS mode")
         elif byNT:
             print("Renormalized data using byNT mode")
         else:
@@ -572,8 +581,9 @@ class ReactivityProfile(object):
  
         return normfactors
 
-
-
+    
+    
+    
     def normalize_external(self, profilefiles = [], profileobjs = [], **kwargs):
         """normalize reactivities using a set of other data to compute normfactors
         profilefiles = list of profile.txt files to normalize against
@@ -640,8 +650,11 @@ class ReactivityProfile(object):
         
             self.backprofile, self.backerror = prof.profile('raw', True)
 
-
-        self.subprofile, self.suberror = self.computeProfileDiff(self, compname='back', myname='raw')
+        
+        if np.all(np.isnan(self.backprofile)):
+            self.subprofile, self.suberror = np.copy(self.rawprofile), np.copy(self.rawerror)
+        else:
+            self.subprofile, self.suberror = self.computeProfileDiff(self, compname='back', myname='raw')
         
         if normalize:
             self.normalize(**kwargs)
@@ -751,6 +764,37 @@ class ReactivityProfile(object):
 
         return fac, -1 
         
+
+
+    def eDMS_normalization(self, data):
+        """normalize data following eDMS pernt scheme in ShapeMapper 2.2"""    
+    
+        # if too few data points, don't normalize
+        if len(data)<10:
+            return np.nan, np.nan
+
+        bnds = np.percentile(data, [90., 95.])
+        mask = (data >= bnds[0]) & (data<bnds[1])
+        normset = data[mask]
+        
+        # compute the norm the standard way
+        n1 = np.mean(normset)
+
+        try:
+            # compute the norm only considering reactive nts
+            n2 = np.percentile(data[data>0.001], 75.)
+        except IndexError:
+            n2 = 0
+
+        nfac = max(n1,n2)
+        
+        # if signal too low, don't norm the data
+        if nfac < 0.002:
+            return np.nan, np.nan
+        
+        std = np.std(normset)
+    
+        return nfac, std/np.sqrt(len(normset))
 
 
 

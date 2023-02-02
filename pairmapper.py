@@ -34,7 +34,7 @@ class PairMapper(object):
     def __init__(self, ringexp, profile, 
                        chi2cut=23.9, 
                        primary_reactivity=0.2, primary_zscore=2.0,
-                       secondary_reactivity=0.5, secondary_zscore=2.0,
+                       secondary_reactivity=0.4, secondary_zscore=2.0,
                        maxGU=None, maxNC=0):
         """Initialize PairMapper from ringexp object"""
         
@@ -252,8 +252,12 @@ class PairMapper(object):
                                                   self.parent.ex_zscores[j,i]))
             OUT.write("{0}\t{1}\t".format(self.parent.ex_readarr[i,j],
                                           self.parent.ex_comutarr[i,j]))
-            OUT.write("{0}\t{1}\n".format(self.parent.bg_readarr[i,j],
-                                        self.parent.bg_comutarr[i,j]))
+
+            if self.parent.bg_readarr is not None:
+                OUT.write("{0}\t{1}\n".format(self.parent.bg_readarr[i,j],
+                                            self.parent.bg_comutarr[i,j]))
+            else:
+                OUT.write("-1 -1\n")
 
 
         # determine complementary correlations that aren't primary or secondary
@@ -336,10 +340,11 @@ class PairMapper(object):
             comuts[:,i] = np.ma.masked
         
         # mask out high background positions
-        nts = self.parent.getReactiveNts(self.parent.highbgrate, prefix='bg')
-        for i in nts:
-            comuts[i,:] = np.ma.masked
-            comuts[:,i] = np.ma.masked
+        if self.parent.bg_readarr is not None:
+            nts = self.parent.getReactiveNts(self.parent.highbgrate, prefix='bg')
+            for i in nts:
+                comuts[i,:] = np.ma.masked
+                comuts[:,i] = np.ma.masked
         
 
         # compute the comut rates 
@@ -357,10 +362,11 @@ class PairMapper(object):
                     comuts[i,j] /= self.parent.ex_readarr[i,j] 
                     
                     # do background subtraction
-                    if self.parent.bg_readarr[i,j] > depthcut:
-                        comuts[i,j] -= float(self.parent.bg_comutarr[i,j])/self.parent.bg_readarr[i,j]
-                    else:
-                        comuts[i,j] = np.ma.masked
+                    if self.parent.bg_readarr is not None:
+                        if self.parent.bg_readarr[i,j] > depthcut:
+                            comuts[i,j] -= float(self.parent.bg_comutarr[i,j])/self.parent.bg_readarr[i,j]
+                        else:
+                            comuts[i,j] = np.ma.masked
 
                 else:
                     comuts[i,j] = np.ma.masked
@@ -413,41 +419,6 @@ class PairMapper(object):
     
 
 
-    def plot(self, output, minz=2, maxz=6, ct=None):
-        """Plot reactivity data and primary+secondary pairmap correlations"""
-        
-        from pmanalysis import PairMap
-        from arcPlot import ArcPlot
-
-        plot = ArcPlot()
-
-        plot.reactprofile = self.profile.normprofile
-        plot.reactprofileType = 'DMS'
-        plot.seq = ''.join(self.profile.sequence)
-        
-        
-        pmobj = PairMap()
-        pmobj.primary = [(i+1,j+1,0, self.parent.getMeanZ(i,j)) for i,j in self.primary]
-        pmobj.secondary = [(i+1,j+1,0, self.parent.getMeanZ(i,j)) for i,j in self.secondary]
-        pmobj.window = self.parent.window
-
-        plot.addPairMap( pmobj, panel=-1)
- 
-
-        msg=None
-        if ct is not None:
-            plot.addCT(ct)
-            
-            p,s = pmobj.ppvsens_duplex(ct, ptype=1, profile=self.profile.normprofile)
-            msg = "PPV={0:.0f}  Sens={1:.0f}".format(p*100, s*100)
-
-
-        plot.writePlot(output, msg=msg)
-
-
-
-
-
 
 #########################################################################################
 
@@ -480,12 +451,13 @@ def parseArguments():
     required = parser.add_argument_group('required arguments')
 
     required.add_argument('--modified_parsed', help='Path to Modified parsed.mut')
-    required.add_argument('--untreated_parsed', help='Path to Untreated parsed.mut')
     required.add_argument('--profile', help='Path to profile.txt')
     required.add_argument('--out', help='output prefix')
     
     ######################################################
     # optional arguments
+    
+    optional.add_argument('--untreated_parsed', help='Path to Untreated parsed.mut')
 
     optional.add_argument('--undersample', type=int, default=-1, help="""Randomly undersample specified number of reads 
                                            from modified file (default=-1 [disabled]).""")
@@ -517,18 +489,22 @@ def parseArguments():
     optional.add_argument('--mindepth', type=int, default=10000, help="""Minimum pairwise read depth allowed for calculating 
                                         correlations (default = 10000)""")
 
-    optional.add_argument('--mincount', type=int, default=50, help="""Minimum required count in contigency table 
-                                      (default = 50). Nt pairs with fewer than this number of comutations are ignored""")
+    optional.add_argument('--mincount', type=int, default=10, help="""Minimum required count in contigency table 
+                                      (default = 10). Nt pairs with fewer than this number of comutations are ignored""")
     
     optional.add_argument('--primary_reactivity', type=float, default=0.2, help="""Reactivity cutoff for primary correlations
                                       (default = 0.2)""")
     optional.add_argument('--primary_zscore', type=float, default=2.0, help="""Zscore cutoff for primary correlations
                                       (default = 2.0)""")
-    optional.add_argument('--secondary_reactivity', type=float, default=0.5, help="""Reactivity cutoff for secondary correlations
-                                      (default = 0.5)""")
+    optional.add_argument('--secondary_reactivity', type=float, default=0.4, help="""Reactivity cutoff for secondary correlations
+                                      (default = 0.4)""")
     optional.add_argument('--secondary_zscore', type=float, default=2.0, help="""Zscore cutoff for secondary correlations
                                       (default = 2.0)""")
     
+    optional.add_argument('--renormalize', action='store_true', help="""Renormalize data using Mustoe et al DMS scheme. NOT recommended for most usage
+                                                                        cases. Use this option when analyzing data processed without the shapemapper 
+                                                                        --dms flag""")
+
     optional.add_argument('--override_qualcheck', action='store_true', help="""Override quality checks and perform PAIR-MaP analysis despite poor data quality""")
 
 
@@ -539,8 +515,7 @@ def parseArguments():
     
 
     # check that required args are defined
-    if not args.modified_parsed or not args.untreated_parsed \
-            or not args.profile or not args.out:
+    if not args.modified_parsed or not args.profile or not args.out:
         
         sys.stderr.write("! Required arguments not provided !\n\n")
         parser.print_help(sys.stderr)
@@ -582,9 +557,16 @@ if __name__ == '__main__':
     
     # read in the reactivity profile information
     profile = ReactivityProfile(args.profile, bg=args.highbg_rate, ignorents=args.ignorents)
-    profile.normalize(DMS=True)
-    # write normed reactivities to file
-    profile.writeReactivity('{}.dms'.format(args.out)) 
+    
+
+    if args.renormalize:
+        if not args.untreated_parsed:
+            profile.normalize(oldDMS=True, name='raw')
+        else:
+            profile.normalize(oldDMS=True)
+
+        # write normed reactivities to file
+        profile.writeReactivity('{}.dms'.format(args.out)) 
     
 
     
@@ -595,10 +577,11 @@ if __name__ == '__main__':
     ringexp.initDataMatrices('ex', args.modified_parsed, window=3, 
                              mincoverage=args.mincoverage, undersample = args.undersample,
                              verbal = verbal)
-
-    ringexp.initDataMatrices('bg', args.untreated_parsed, window=3, 
-                             mincoverage=args.mincoverage, undersample = args.undersample,
-                             verbal = verbal)
+    
+    if args.untreated_parsed:
+        ringexp.initDataMatrices('bg', args.untreated_parsed, window=3, 
+                                 mincoverage=args.mincoverage, undersample = args.undersample,
+                                 verbal = verbal)
 
     
     
@@ -627,6 +610,7 @@ if __name__ == '__main__':
                        secondary_zscore=args.secondary_zscore)
     
 
+
     if pairs.passfilter or args.override_qualcheck:
 
         # write out pairmap data
@@ -635,15 +619,9 @@ if __name__ == '__main__':
         # write out folding restraint matrix
         pairs.writePairBonusFile('{}.bp'.format(args.out), chi2cut=args.chisq_cut, maxNC=1)
 
-
-    # make plot
-    #try:
-    #    pairs.plot('{}-pairmapper.pdf'.format(args.out))
-    #except:
-    #    print("Was unable to generate plot")
-
-
        
+
+
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

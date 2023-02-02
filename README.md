@@ -53,7 +53,8 @@ Dependencies
 ------------
 - python 2.7, numpy
 - cython (developed using v0.23)
-- ShapeMapper version 2.1.4 or higher (for pre-processing data)
+- ShapeMapper version 2.2 for pre-processing data
+
 
 Citation
 --------
@@ -113,8 +114,6 @@ pairmapper.py <optional args> --modified_parsed <modfile> --untreated_parsed <un
 ```
 --modified_parsed <modfile>     Parsed mutation file of modified sample 
 
---untreated_parsed <untfile>    Parsed mutation file of untreated sample
-
 --profile <profile>             Profile file output by shapemapper
 
 --out <prefix>                  Prefix used for output files
@@ -122,8 +121,19 @@ pairmapper.py <optional args> --modified_parsed <modfile> --untreated_parsed <un
 
 ### Optional arguments
 ```
-PairMapper has only been benchmarked using default parameters. However, a number of parameters
-can be modified if desired. A full list of modifiable parameters can be accessed by running with --help flag.
+--untreated_parsed <untfile>    Parsed mutation file of untreated sample
+
+--override_qualcheck            Pairmapper will refrain from giving results if the RNA does not pass modification rate 
+                                thresholds. This flag will override this internal quality check and produce results 
+                                regardless of underlying data quality. Use caution when intrepretting such results.
+
+--renormalize                   Renormalize DMS data using internal normalization as described in Mustoe et al, 2019. 
+                                If using ShapeMapper2.2 --dms preprocessing, DO NOT use this option.
+
+Additionally, most internal filtering parameters can be modified if desired. 
+A full list of modifiable parameters can be accessed by running with --help flag.
+Note that only default parameters have been benchmarked
+
 ```
 
 ### Outputs
@@ -135,11 +145,13 @@ can be modified if desired. A full list of modifiable parameters can be accessed
 <prefix>-pairmap.txt      Pairmapfile output containing PairMapper filtered correlations.
                           See docs/pairmapfile-format.txt
 
-<prefix>.dms              Normalized DMS reactivities. 
-                          See docs/dmsreactivity-format.txt
-
 <prefix>.bp	              Base pair bonus file for PAIR-MaP structure modeling in RNAstructure.
                           See docs/pairingbonus-format.txt
+
+<prefix>.dms              Normalized DMS reactivities. [Only output if using --renormalize option] 
+                          See docs/dmsreactivity-format.txt
+
+
 ```
 
 
