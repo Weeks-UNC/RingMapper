@@ -157,7 +157,17 @@ Note that only default parameters have been benchmarked
 
 --------------------------------------------------------------------------
 
+Note on reproducing legacy (v1.1 or below) results
+--------------------------------------------------
+The default filtering parameters have been updated in v1.2. 
+To run ringmapper using original parameters, use the following flag:
+--mincount 10
 
+To run pairmapper using original parameters, use the following flag:
+--renormalize --secondary_reactivity 0.5 --mincount 50
+
+
+----------------------------------------------------------------
 Timing/Performance
 ----------------
 A rule of thumb is to expect between 1000-10000 reads/sec. Large RNAs will be 
