@@ -1,4 +1,4 @@
-# RingMapper v1.1
+# RingMapper v1.2
 
 Code for performing RING-MaP and PAIR-MaP analysis
 (RingMapper & PairMapper)
@@ -171,7 +171,7 @@ RingMapper/PairMapper processing should take roughly 1 hour.
 Note on experimental modification rates
 ---------------------------------------
 
-PAIR-MaP analysis can only be performed on MaP datasets containing high levels of chemical modification. Datasets are automatically checked to make sure they exceed minimal modification thresholds, corresponding to median comodification rates >0.0005. PAIR-MaP output files will not be written if this quality check fails.
+PAIR-MaP analysis can only be performed on MaP datasets containing high levels of chemical modification. Datasets are automatically checked to make sure they exceed minimal modification thresholds, corresponding to median comodification rates >0.0001. PAIR-MaP output files will not be written if this quality check fails.
 
 Standard RING-MaP analysis can be performed on any MaP dataset. However, sensitivity again depends strongly on modification rates.
 

@@ -11,12 +11,14 @@ most usage scenarios, which properly normalizes the data. To reproduce
 functionality of prior pairmapper versions that perform internal normalization, 
 use the --renormalize flag.
 
--Changed default reactivity filters to 0.15/0.4 for primary/secondary PAIRs
+-Changed default reactivity filters to 0.2/0.4 for primary/secondary PAIRs
 (prior values were 0.2/0.5). This is optimized for shapemapper2.2 --dms
 
 -Changed default mincount to 10 (prior default was 50).
 
-
+-Relaxed quality filters in pairmapper so that samples with lower mutation
+rates and read-depths pass filter. This is based on eDMS observations.
+However, further work on refining QC thresholds is needed.
 
 
 Version 1.1
