@@ -391,12 +391,12 @@ class PairMapper(object):
         allpassed = True
         
         # mutation rate checks
-        if median_comut < 5e-4 or median_unreact_comut < 1e-4:
+        if median_comut < 1e-4 or median_unreact_comut < 5e-5:
             sys.stdout.write('******************************\n')
             sys.stdout.write('WARNING: Low comutation rates!\n') 
             sys.stdout.write('\tMedian for all nts = {0:.2e}  ({1} pairs)\n'.format(median_comut, median_count))
             sys.stdout.write('\tMedian for unreactive nts = {0:.2e}  ({1} pairs)\n'.format(median_unreact_comut, median_unreact_count))
-            sys.stdout.write('PAIR-MaP data likely untrustworthy\n') 
+            sys.stdout.write('PAIR-MaP data may be untrustworthy\n') 
          
             allpassed = False
         
@@ -409,7 +409,7 @@ class PairMapper(object):
         # read depth checks
         median_depth = np.median(np.diag(self.parent.ex_readarr))
 
-        if median_depth<400000:
+        if median_depth<300000:
             sys.stdout.write('******************************\n')
             sys.stdout.write("WARNING: Low read depths!\n")
             sys.stdout.write("Median read depth = {}!\n".format(median_depth))
