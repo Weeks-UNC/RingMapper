@@ -105,6 +105,10 @@ class RINGexperiment(object):
             self.correlationfunc = self._mutualinformation
             if verbal: print("Using MI correlation metric")
 
+        elif corrtype == 'ami':
+            self.correlationfunc = self._adjusted_mutualinformation
+            if verbal: print("Using MI correlation metric")
+
 
         elif corrtype == 'nmi':
             self.correlationfunc = self._norm_mutualinformation
@@ -417,7 +421,24 @@ class RINGexperiment(object):
         
         return mi
     
- 
+
+    def _adjusted_mutualinformation(self, n, b, c, d):
+        """Calculate mutual information, adjusting for the chance of random
+        overlap.
+
+        Args:
+            n (int): total number of observations
+            b (int): number of i-not-j observations
+            c (int): number of j-not-i observations
+            d (int): number of i-and-j observations
+        """
+        from sklearn.metrics.cluster import adjusted_mutual_info_score
+        # a = number of not-i-not-j observations
+        a = n - b - c - d
+        i_muts = [1]*d + [0]*c + [1]*b + [0]*a
+        j_muts = [1]*d + [1]*c + [0]*b + [0]*a
+        ami = adjusted_mutual_info_score(i_muts, j_muts)
+        return ami
 
     def _mistatistic(self, n, b,c,d):
         """convert mutual information value to g statistic
@@ -776,7 +797,7 @@ class RINGexperiment(object):
         
             OUT.write("{0}\tWindow={1}\tMetric={2}\n".format(self.getMaxArrayIndex(), self.window, self.corrtype.upper()))
             
-            OUT.write("i\tj\tStatistic\t+/-\tZij\tZi\tZj\tMod_Depth\tMod_Comuts\tUnt_Depth\tUnt_Comuts\n")
+            OUT.write("i\tj\tStatistic\t+/-\tZij\tZi\tZj\tMod_Depth\tMod_Comuts\tMod_inotj\tMod_jnoti\tUnt_Depth\tUnt_Comuts\n")
 
             for i,j in corrs:
                 
@@ -788,7 +809,7 @@ class RINGexperiment(object):
 
                 OUT.write("{0:.2f}\t{1:.2f}\t".format(self.ex_zscores[i,j], self.ex_zscores[j,i]))
                 OUT.write("{0}\t{1}\t".format(self.ex_readarr[i,j],self.ex_comutarr[i,j]))
-                
+                OUT.write("{0}\t{1}\t".format(self.ex_inotjarr[i, j], self.ex_inotjarr[j, i]))
                 if self.bg_readarr is not None:
                     OUT.write("{0}\t{1}".format(self.bg_readarr[i,j],self.bg_comutarr[i,j]))
                 
