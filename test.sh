@@ -45,14 +45,15 @@ fi
 
 tar -xf referencefiles.tgz 
 
-../ringmapper.py --fasta ref_addWTfull.fa --unt ref_untreated.mut ref_modified.mut test_ring-corrs.txt --mincount 50 > test_ring.out 2>err.txt
+../ringmapper.py --fasta ref_addWTfull.fa --untreated ref_untreated.mut ref_modified.mut test_ring-corrs.txt --mincount 50 > test_ring.out 2>err.txt
 
 checkError ringmapper err.txt
-runDiff ref_ring-corrs.txt test_ring-corrs.txt ringmapper
+#runDiff ref_ring-corrs.txt test_ring-corrs.txt ringmapper
+runDiff ref_ring-corrs.txt test_ring-corrs.txt_N1 ringmapper
 runDiff ref_ring.out test_ring.out ringmapper
 
 
-../pairmapper.py --profile ref_profile.txt --unt ref_untreated.mut --mod ref_modified.mut --out test_pm --over --mincount 50 --secondary_react 0.5 --renorm > test_pm.out 2>err.txt
+../pairmapper.py --profile ref_profile.txt --untreated ref_untreated.mut --mod ref_modified.mut --out test_pm --over --mincount 50 --secondary_react 0.5 --renorm > test_pm.out 2>err.txt
 
 
 checkError pairmapper err.txt
