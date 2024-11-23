@@ -234,7 +234,7 @@ class PairMapper(object):
             if isComplement(self.parent.sequence[i:i+self.parent.window], 
                     self.parent.sequence[j:j+self.parent.window], maxGU=maxGU, maxNC=maxNC):
                 compcorrs.append((i,j))
-
+        print(compcorrs)
         return compcorrs
 
 

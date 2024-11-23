@@ -19,9 +19,8 @@
 
 
 
-import sys, argparse, itertools, math
+import sys, argparse, itertools, math, time, os, random
 import numpy as np
-
 import readMutStrings  # cython code containing I/O funcs
 
 
@@ -32,7 +31,7 @@ class RINGexperiment(object):
     """
 
     def __init__(self, fasta = None, exfile=None, bgfile=None, arraysize=1000, 
-                 corrtype = 'g', verbal=False, **kwargs):
+                 corrtype = 'g', verbal=False, concat=False, N7=False, **kwargs):
         """
         fasta = fasta file of the sequence being analyzed
         exfile = datafile containing experiment data
@@ -41,11 +40,15 @@ class RINGexperiment(object):
         corrtype = type of correlation 
         kwargs are passed to initDataMatrices
         """
-
+        
         if fasta is not None:
-            self.sequence = self.readFasta(fasta, verbal=verbal)
+            self.sequence = readFasta(fasta, verbal=verbal)
             # set arraysize to sequence length, plus a little padding to guard against indexErrors
-            self.arraysize = len(self.sequence)
+            
+            if concat:
+                self.arraysize = len(self.sequence) * 2
+            else:
+                self.arraysize = len(self.sequence)
         else:
             self.sequence = None
             self.arraysize = arraysize
@@ -68,6 +71,10 @@ class RINGexperiment(object):
         self.ex_zscores = None
 
         self.window = None
+        self.concat = concat
+        self.N7 = N7
+
+        
         
         self.setCorrType(corrtype, verbal=verbal)
 
@@ -116,24 +123,6 @@ class RINGexperiment(object):
         self.corrtype = corrtype
 
 
-    def readFasta(self, fasta, verbal=False):
-        """Read the sequence in the provided sequence file"""
-        
-        with open(fasta) as inp:
-            inp.readline()
-            
-            seq = ''
-            for line in inp:
-                if line[0] == '>':
-                    break
-                seq += line.strip()
-
-        
-        if verbal:
-            print("Sequence length={0} read from {1}".format(len(seq), fasta))
-
-        return seq    
-
 
 
     def initDataMatrices(self, prefix, datafile, window=1, verbal=False, **kwargs):
@@ -157,7 +146,12 @@ class RINGexperiment(object):
         inotj = np.zeros( (self.arraysize, self.arraysize), dtype=np.int32)
         
         # determine whether new or old mutstring format
-        filetype = self._filetype(datafile)
+        # Using integers for this system is a bit confusing
+        # should change to strings for sake of clarity.
+        if self.concat: # Should move this functionality to _filetype
+            filetype = 3
+        else:
+            filetype = self._filetype(datafile)
         
         if filetype > 0:
             if verbal: print("Filling {0} arrays from {1}".format(prefix, datafile))
@@ -278,13 +272,18 @@ class RINGexperiment(object):
         except AttributeError:
             
             if self.sequence is not None:
-                self.maxarrayindex = len(self.sequence)
+
+                if self.concat:
+                    self.maxarrayindex = 2 * len(self.sequence)
+                    
+                else:
+                    self.maxarrayindex = len(self.sequence)
 
             else:
                 arr = getattr(self, prefix+'_readarr')
             
                 last = 0
-                for i in xrange(arr.shape[0]):
+                for i in range(arr.shape[0]):
                     if arr[i,i] != 0:
                         last = i
             
@@ -301,7 +300,7 @@ class RINGexperiment(object):
         comutarr = getattr(self, prefix+'_comutarr')
 
         ntlist = []
-        for i in xrange( self.getMaxArrayIndex() ):
+        for i in range( self.getMaxArrayIndex() ):
         
             if readarr[i,i] == 0:
                 continue
@@ -322,7 +321,7 @@ class RINGexperiment(object):
         comutarr = getattr(self, prefix+'_comutarr')
 
         ntlist = []
-        for i in xrange( self.getMaxArrayIndex() ):
+        for i in range( self.getMaxArrayIndex() ):
         
             if readarr[i,i] == 0:
                 continue
@@ -381,7 +380,6 @@ class RINGexperiment(object):
         af = float(n-b-c-d)
         bf = float(b)
     
-        #return (af*d - bf*c) / min( (af+bf)*(bf+d), (af+c)*(c+d) )
         bot = (af+bf)*(c+d)*(af+c)*(bf+d)
         if bot < 1:
             return 0
@@ -416,7 +414,25 @@ class RINGexperiment(object):
         mi /= n
         
         return mi
-    
+
+    def _get_alpha(self, n, b, c, d):
+        '''Get correlation factor alpha using the contingency table'''
+        
+        bf = float(b)
+        df = float(d)
+        cf = float(c)
+        nf = float(n)        
+
+        P_comut = df / nf
+        P_i = bf / nf
+        P_j = c / nf
+        alpha = 0
+        try:
+            alpha = P_comut / (P_i * P_j)
+        except:
+            print("divide by zero!")
+        
+        return alpha
  
 
     def _mistatistic(self, n, b,c,d):
@@ -519,10 +535,13 @@ class RINGexperiment(object):
         # initialize the matrix
         cmat = np.empty((seqlen, seqlen), dtype=np.float32)
         cmat[:] = np.nan
-        
-        for i in xrange(seqlen):
-            for j in xrange(i+corrbuffer, seqlen):               
+
+        for i in range(seqlen):
+            for j in range(i+corrbuffer, seqlen):
                 if read[i,j]>=mindepth and min(inotj[i,j], inotj[j,i], comut[i,j])>=mincount:
+                    if self.concat and j > (seqlen / 2) and j - i <= corrbuffer:
+                        continue
+
                     cmat[i,j] = self.correlationfunc(read[i,j], inotj[i,j], inotj[j,i], comut[i,j])
                     cmat[j,i] = cmat[i,j] 
         
@@ -555,7 +574,7 @@ class RINGexperiment(object):
         # compute correlation matrix
         self._correlationMatrix('ex', self.corrbuffer, mindepth, mincount)
         
-            
+
         # mask out user specified values
         for i in ignorents:
             self.ex_correlations[i,:] = np.ma.masked
@@ -663,8 +682,8 @@ class RINGexperiment(object):
         corrmat = getattr(self, prefix+'_correlations')
         
         corrs = []
-        for i in xrange(seqlen):
-            for j in xrange(i, seqlen):
+        for i in range(seqlen):
+            for j in range(i, seqlen):
                 # this will automatically skip masked out values
                 if corrmat[i,j] >= chi2cut and self.correlationsign(i,j,prefix) >= sign:
                     corrs.append((i,j))
@@ -693,8 +712,8 @@ class RINGexperiment(object):
 
         seqlen = self.getMaxArrayIndex()
         
-        for i in xrange(seqlen):
-            for j in xrange(i+1, seqlen):
+        for i in range(seqlen):
+            for j in range(i+1, seqlen):
                 if not corrmat.mask[i,j] and counts[i]>2 and counts[j]>2:
                     zscores[i,j] = (corrmat[i,j]-corrmean[i])/corrstd[i]
                     zscores[j,i] = (corrmat[i,j]-corrmean[j])/corrstd[j]
@@ -776,9 +795,16 @@ class RINGexperiment(object):
         
             OUT.write("{0}\tWindow={1}\tMetric={2}\n".format(self.getMaxArrayIndex(), self.window, self.corrtype.upper()))
             
-            OUT.write("i\tj\tStatistic\t+/-\tZij\tZi\tZj\tMod_Depth\tMod_Comuts\tUnt_Depth\tUnt_Comuts\n")
+            OUT.write("i\tj\tStatistic\t+/-\tZij\tZi\tZj\tMod_Depth\tMod_Comuts\tAlpha\tUnt_Depth\tUnt_Comuts\n")
 
             for i,j in corrs:
+                if self.concat:
+                    
+                    #filter out N1-N1 or N7-N7 rings in N1-N7 output
+                    if (i < (len(self.sequence)) and j < (len(self.sequence))) or (i > (len(self.sequence)) and j > (len(self.sequence))):
+                        continue
+                    
+                
                 
                 OUT.write("{0}\t{1}\t".format(i+1, j+1))
                 
@@ -788,7 +814,7 @@ class RINGexperiment(object):
 
                 OUT.write("{0:.2f}\t{1:.2f}\t".format(self.ex_zscores[i,j], self.ex_zscores[j,i]))
                 OUT.write("{0}\t{1}\t".format(self.ex_readarr[i,j],self.ex_comutarr[i,j]))
-                
+                OUT.write("{}\t".format(self._get_alpha(self.ex_readarr[i,j], self.ex_inotjarr[i,j], self.ex_inotjarr[j,i], self.ex_comutarr[i,j])))
                 if self.bg_readarr is not None:
                     OUT.write("{0}\t{1}".format(self.bg_readarr[i,j],self.bg_comutarr[i,j]))
                 
@@ -819,9 +845,94 @@ class RINGexperiment(object):
         except IOError:
             print('WARNING: no bg matrices found for {0}'.format(prefix))
 
+#This function opens the .mut and .mutga strings and just concats
+#them together returns the file name
+def concat_mut(inputmut, inputmutga, fasta):
+    read_length = len(readFasta(fasta))
+      
+    t = time.localtime()
+    current_time = time.strftime("%H_%M_%S", t)
+    outputfile = '.TEMP_{}.mut'.format(current_time)
+    with open(inputmut, 'r') as mut, open(inputmutga, 'r') as mutGA, open(outputfile, 'w') as concat:
+        parsedLines = mut.read().splitlines()
+        parsedLinesGA = mutGA.read().splitlines()
+        length = len(parsedLines)
+        for i in range(length):
+            splGA = parsedLinesGA[i].split()
+            spl = parsedLines[i].split()
+            if(splGA[4] == "INCLUDED" and spl[4] == "INCLUDED"):
+                
+                to_add = []
+                to_add += (read_length - (int(spl[3]) + 1)) * ["0"]
+                to_add += (int(spl[2])) * ["0"]
+          
+                if(len(to_add) > 0):         
+                    for index in [6, 7, 8]:
+                        spl[index] = spl[index] + "".join(to_add) + splGA[index]
+                    spl[3] = str(int(spl[3]) + read_length)
+                else:
+                    for index in [6, 7, 8]:
+                        spl[index] = spl[index] + "".join(to_add) + splGA[index]
+                    spl[3] = str(int(spl[3]) + read_length)
 
+                newline = " ".join(spl)
+                concat.write(newline + "\n")
+
+    return outputfile
+
+def weaveConcatout(N1_file, N1N7_file, N7_file, output_file):
+    with open(N1_file, 'r') as N1_input:
+        N1_lines = N1_input.readlines()
+
+    with open(N1N7_file, 'r') as N1N7_input:
+        N1N7_lines = N1N7_input.readlines()
+
+    with open(N7_file, 'r') as N7_input:
+        N7_lines = N7_input.readlines()
+
+    with open(output_file, 'w') as out:
+        for i in N1_lines:
+            out.write(i)
+        for i, v in enumerate(N1N7_lines):
+            if i == 0 or i == 1:
+                continue
+            out.write(v)
+        for i, v in enumerate(N7_lines):
+            if i == 0:
+                length = v.split()[0]
+                continue
+            if i == 1:
+                continue
+
+            v =  v.split()
+            v[0] = int(v[0])
+            v[1] = int(v[1])
+            v[0] += int(length)
+            v[1] += int(length)
+            v[0] =  str(v[0])
+            v[1] =  str(v[1])
+            newline = '\t'.join(v)
+            newline = newline + '\n'
+
+            out.write(newline)
+
+def readFasta(fasta, verbal=False):
+    """Read the sequence in the provided sequence file"""
+    
+    with open(fasta) as inp:
+        inp.readline()
         
+        seq = ''
+        for line in inp:
+            if line[0] == '>':
+                break
+            seq += line.strip()
 
+    
+    if verbal:
+        print("Sequence length={0} read from {1}".format(len(seq), fasta))
+
+    return seq    
 
     ###############################################################################
 
@@ -854,7 +965,7 @@ def parseArguments():
                         (i.e. if 0.8 is passed, reads will be required to have at least 0.8*len(fasta) valid matches)/
                         Alternatively, an integer value can be passed 
                         (i.e. if 150 is passed, reads will be required to have at least 150 valid matches).
-                        By default, this filter is disabled.""")
+                        By default, this filter is disabled. (Requires --fasta)""")
 
     parser.add_argument('--highbg_rate', type=float, default = 0.02, help="""Ignore nts with bg reactivity above
                         this value (default = 0.02). Value is multipled by window (so default=0.06 for window=3)""")
@@ -872,6 +983,16 @@ def parseArguments():
                          from inputFile (default=-1 [disabled]).""") 
 
     parser.add_argument('--writematrixfile', help="Write mutation matrices to file (provide prefix)")
+
+    parser.add_argument("--concat", action="store_true", default=False, help="Concatenate the mut/mutga files and look at N1-N7 correlations. A fasta file must be included for this analysis. (Requires --fasta, --parsedMutga)")
+
+    parser.add_argument("--parsedMutga", default = None, help = "Path to the N7 mutation string file")
+
+    parser.add_argument("--untreatedMutga", default = None, help = 'Path to the untreated N7 mutation string folder. Used to remove high bg positions and bg correlations (Requires --untreated')
+
+    parser.add_argument("--keepconcat", action = 'store_true' ,default = False, help = 'Keep the concatenated mutation string files for use in other analyses')
+
+
     
     
 
@@ -879,7 +1000,9 @@ def parseArguments():
         
     # check to make sure mincoverage is correct
     if 0<args.mincoverage<1:
-        assert args.fasta is not None, "fasta file must be provided when using fraction mincoverage filter"
+        #assert args.fasta is not None, "fasta file must be provided when using fraction mincoverage filter"
+        if not args.fasta:
+            raise ValueError("fasta file must be provided when using fraction mincoverage filter")
 
 
     # parse ignorents argument
@@ -890,7 +1013,7 @@ def parseArguments():
             for x in spl:
                 if ':' in x:
                     xspl = x.split(':')
-                    ig.extend(range(int(xspl[0])-1, int(xspl[1])))
+                    ig.extend(list(range(int(xspl[0])-1, int(xspl[1]))))
                 else:
                     ig.append(int(x)-1)  # correct for 1-indexing of input 
         except ValueError:
@@ -907,6 +1030,8 @@ def parseArguments():
 
 
 
+
+
 ###############################################################################
 
 
@@ -914,12 +1039,14 @@ def parseArguments():
 if __name__ == '__main__':
 
     args = parseArguments()
+    
 
     verbal = True
-    #verbal = False
+    
 
+    
     # initialize the object and read in matrices
-    ringexp = RINGexperiment(fasta=args.fasta, 
+    N1_ringexp = RINGexperiment(fasta=args.fasta, 
                              exfile = args.inputFile,
                              bgfile = args.untreated,
                              arraysize = args.molsize,
@@ -931,7 +1058,7 @@ if __name__ == '__main__':
     
 
     # compute the correlation matrices
-    ringexp.computeCorrelationMatrix(corrbuffer = args.mincorrdistance, 
+    N1_ringexp.computeCorrelationMatrix(corrbuffer = args.mincorrdistance, 
                                      mindepth = args.mindepth,
                                      mincount = args.mincount,
                                      ignorents = args.ignorents,
@@ -939,20 +1066,99 @@ if __name__ == '__main__':
                                      highbgcorr = args.highbg_corr, 
                                      verbal = verbal)
     
-    ringexp.writeCorrelations(args.outputFile, chi2cut=args.chisq_cut)
- 
-    
-    
+    N1_ringexp.writeCorrelations(args.outputFile + '_N1', chi2cut=args.chisq_cut)
+
     if args.writematrixfile:
-        ringexp.writeDataMatrices('ex', args.writematrixfile)
+        N1_ringexp.writeDataMatrices('ex', args.writematrixfile + '_N1')
         
-        if ringexp.bg_readarr is not None:
-            ringexp.writeDataMatrices('bg', args.writematrixfile)
+        #if N1_ringexp.bg_readarr is not None:
+        if N1_ringexp.bg_readarr:
+            N1_ringexp.writeDataMatrices('bg', args.writematrixfile + '_N1')
+
+    if args.parsedMutga is not None:
+        N7_ringexp = RINGexperiment(fasta=args.fasta, 
+                             exfile = args.parsedMutga,
+                             bgfile = args.untreatedMutga,
+                             arraysize = args.molsize,
+                             window = args.window,
+                             corrtype = args.metric, 
+                             mincoverage = args.mincoverage,
+                             undersample = args.undersample,   
+                             verbal = verbal,
+                             N7 = True)
+        N7_ringexp.computeCorrelationMatrix(corrbuffer = args.mincorrdistance, 
+                                     mindepth = args.mindepth,
+                                     mincount = args.mincount,
+                                     ignorents = args.ignorents,
+                                     highbgrate = args.highbg_rate,
+                                     highbgcorr = args.highbg_corr, 
+                                     verbal = verbal)
+    
+        N7_ringexp.writeCorrelations(args.outputFile + '_N7', chi2cut=args.chisq_cut)
+
+        if args.writematrixfile:
+            N7_ringexp.writeDataMatrices('ex', args.writematrixfile + '_N7')
+        
+            if N7_ringexp.bg_readarr is not None:
+                N7_ringexp.writeDataMatrices('bg', args.writematrixfile + '_N7')
+
+
+        if args.concat:
+
+        
+            #assert args.fasta is not None, 'fasta file must be provided when concatenating data. Exiting.'
+            if not args.fasta:
+                raise ValueError("fasta file must be provided when concatenating data. Exiting.")
+        
+            N1N7_exfile = concat_mut(args.inputFile, args.parsedMutga, args.fasta)
+            #if args.untreated is not None and args.untreatedMutga is not None:
+            if args.untreated and args.untreatedMutga:
+                N1N7_bgfile = concat_mut(args.untreated, args.untreatedMutga, args.fasta)
+            else:
+                N1N7_bgfile = None
+
+
             
 
+            N1N7_ringexp = RINGexperiment(fasta=args.fasta, 
+                                 exfile = N1N7_exfile,
+                                 bgfile = N1N7_bgfile,
+                                 arraysize = args.molsize,
+                                 window = args.window,
+                                 corrtype = args.metric, 
+                                 mincoverage = args.mincoverage,
+                                 undersample = args.undersample,   
+                                 verbal = verbal,
+                                 concat=True)
+            N1N7_ringexp.computeCorrelationMatrix(corrbuffer = args.mincorrdistance, 
+                                         mindepth = args.mindepth,
+                                         mincount = args.mincount,
+                                         ignorents = args.ignorents,
+                                         highbgrate = args.highbg_rate,
+                                         highbgcorr = args.highbg_corr, 
+                                         verbal = verbal)
+    
+            N1N7_ringexp.writeCorrelations(args.outputFile + '_N1N7', chi2cut=args.chisq_cut)
 
 
+            weaveConcatout(args.outputFile + '_N1',(args.outputFile + '_N1N7'), (args.outputFile + '_N7'), (args.outputFile + '_concatrings'))
 
+            if args.writematrixfile:
+                N1N7_ringexp.writeDataMatrices('ex', args.writematrixfile + '_N1N7')
+        
+                #if N1N7_ringexp.bg_readarr is not None:
+                if N1N7_ringexp.bg_readarr:
+                    N1N7_ringexp.writeDataMatrices('bg', args.writematrixfile + '_N1N7')
 
+            if args.keepconcat:
+                os.rename(N1N7_exfile, args.inputFile.split('.')[0] + '_concat.mut')
+                #if N1N7_ringexp.bg_readarr is not None:
+                if N1N7_ringexp.bg_readarr:
+                    os.rename(N1N7_bgfile, args.untreated.split('.')[0] + '_concat.mut')
+            else:
+                os.remove(N1N7_exfile)
+                os.remove(N1N7_bgfile)
+        
+    
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

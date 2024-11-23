@@ -33,6 +33,11 @@ Mod_Depth   Number of times windows i,j were read together in the Modified sampl
 
 Mod_Comuts  Number of times windows i,j were mutated together in the Modified sample
 
+Alpha       Statistic quantifying the coupling strength between nucleotides. Equivalent
+            to   pij / (pi*pj)   where pij is the joint probability of both nucleotides
+            i and j being mutated and pi and pj are the marginal mutation probabilities
+            of i and j.
+
 Unt_Depth   Number of times windows i,j were read together in the Untreated sample
 
 Unt_Comuts  Number of times windows i,j were mutated together in the Untreated sample

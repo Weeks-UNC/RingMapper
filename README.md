@@ -1,4 +1,4 @@
-# RingMapper v1.2
+# RingMapper v1.3
 
 Code for performing RING-MaP and PAIR-MaP analysis
 (RingMapper & PairMapper)
@@ -30,6 +30,11 @@ Both RingMapper and PairMapper require read alignment and preprocessing
 by ShapeMapper2 using the --output-parsed flag. 
 See the ShapeMapper2 documentation for further information regarding
 alignment and processing options.
+
+Following the release of ShapeMapper2.3 RingMapper may now be used to compute
+N1/3-N7 and N7-N7 RINGs in addition to traditional N1/3-N1/3 RINGs. See the
+section titled "RingMapper Usage for N7" below. Note - PairMapper not currently
+tested for compatibility with N7 functionality.
 
 RING and PAIR-MaP data can be visualized using the arcPlot plotting tool,
 available at https://github.com/Weeks-UNC/arcPlot
@@ -100,6 +105,41 @@ A full list of optional arguments/parameters can be accessed by running with --h
 ### Outputs
 ```
 Ringfile        List of correlations. See docs/ringfile-format.txt
+```
+
+--------------------------------------------------------------------------
+
+RingMapper Usage for N7
+-----------------
+```
+ringmapper.py <optional args> --parsedMutga parsed.mutga --fasta fasta.fa inputfile outputfile | --help
+```
+
+### Required inputs
+```
+inputfile       Parsed mutation file of modified sample
+--parsedMutga   Parsed mutation file of modified sample containing N7 modifications
+--fasta         Path to fasta sequence file
+outputpath      Path where output Ringfiles will be written
+```
+
+### Optional arguments
+```
+--untreatedMutga   Path to mutation file for untreated sample containing N7 modifications.
+                   Nts with high mutation rates or correlations in the untreated sample
+                   are ignored (Required --untreated)
+
+--keepconcat       Keep the concatenated mutation string files for use in other analyses
+
+A full list of optional arguments/parameters can be accessed by running with --help flag
+```
+
+### Outputs
+```
+Ringfile_concatrings   List of N1/3-N1/3, N1/3-N7, and N7-N7 correlations. See docs/ringfile-format.txt
+Ringfile_N1            List of N1/3-N1/3 correlations. See docs/ringfile-format.txt
+Ringfile_N1N7          List of N1/3-N7 correlations. See docs/ringfile-format.txt
+Ringfile_N7            List of N7-N7 correlations. See docs/ringfile-format.txt
 ```
 
 --------------------------------------------------------------------------
