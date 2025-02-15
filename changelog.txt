@@ -1,3 +1,46 @@
+Version 1.3
+August 30, 2024
+Thomas Miller <thomas.miller2@bcm.edu>, Lucas Kearns <lucas.kearns@bcm.edu>,
+David Mitchell <david.mitchell@bcm.edu>
+***********************************************************************
+
+ADDED:
+
+Added ShapeMapper_MMS0_Mut_Filter.py. Filters SM runs performed with min mut
+separation set to 0. Enables optimal base pair detection by PairMapper. See README for details.
+
+Added --concat flag. This flag allows RingMapper to concatenate N1/3 and N7-G mut files and
+generate N1/3-N1/3, N1/3-N7G, and N7G-N7G RINGs. 
+
+Added alpha statistic calculation. Equivalent to 
+(comutations / Depth) / 
+((i mutations and no j mutations / Depth) * (j mutations and no i mutations / Depth))
+(See 2024 N7 publication for a more in depth explanation / cleaner
+formula). Allows for determination of effect size of a given RING.
+
+
+Version 1.2
+August 25, 2022
+Anthony Mustoe <anthony.mustoe@bcm.edu>
+***********************************************************************
+
+-Eliminated need for mandatory untreated sample in pairmapper
+
+-Eliminated default reactivity normalization in pairmapper. It assumed 
+that users will use the Shapemapper2.2 --dms flag for processing for 
+most usage scenarios, which properly normalizes the data. To reproduce 
+functionality of prior pairmapper versions that perform internal normalization, 
+use the --renormalize flag.
+
+-Changed default reactivity filters to 0.2/0.4 for primary/secondary PAIRs
+(prior values were 0.2/0.5). This is optimized for shapemapper2.2 --dms
+
+-Changed default mincount to 10 (prior default was 50).
+
+-Relaxed quality filters in pairmapper so that samples with lower mutation
+rates and read-depths pass filter. This is based on eDMS observations.
+However, further work on refining QC thresholds is needed.
+
 
 Version 1.1
 August 10, 2020 	
@@ -58,5 +101,3 @@ than matrix format
 write pairmapper files despite failure of one on more quality checks
 
 -added significantDifference function for computing differences between contigency tables
-
-

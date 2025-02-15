@@ -21,7 +21,8 @@
 from libc.stdio cimport FILE, fopen, fclose, getline
 from libc.stdlib cimport atoi, free
 from libc.string cimport strsep, strtok, strcmp, strdup
-
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 import numpy as np
 cimport numpy as np
 
