@@ -123,14 +123,14 @@ def fillMatrices(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, int[
             if r.read == NULL:
                 raise IndexError()
             elif r.stop >= maxindex:
-                print "Skipping line {0} with out-of-array-bounds = ({1}, {2})".format(linenum, r.start, r.stop)
+                print("Skipping line {0} with out-of-array-bounds = ({1}, {2})".format(linenum, r.start, r.stop))
                 continue
 
             fillReadMut(readnts, mutnts, r, window, mincoverage)
  
         except:
             skipped_reads += 1
-            #print "Skipping incorrectly formatted line {0}".format(linenum)
+            #print("Skipping incorrectly formatted line {0}".format(linenum))
             continue
         
         # check if read was read, and if so, increment counter
@@ -161,29 +161,29 @@ cdef void incrementArrays(int[:,::1] read_arr, int[:,::1] comut_arr, int[:,::1] 
     cdef int i, j, i_index
     
     # increment the read count matrix; first element of readnts is +1 of last index
-    for i in xrange(1, readnts[0]):
+    for i in range(1, readnts[0]):
         i_index = readnts[i]
-        for j in xrange(i, readnts[0]):
+        for j in range(i, readnts[0]):
             read_arr[ i_index, readnts[j] ] += 1
     
 
     # increment the mut matrices; first element of mutnts is +1 of last index
-    for i in xrange(1, mutnts[0]):
+    for i in range(1, mutnts[0]):
         
         i_index = mutnts[i]
         
         # increment comut
-        for j in xrange(i, mutnts[0]):
+        for j in range(i, mutnts[0]):
             comut_arr[ i_index, mutnts[j] ] += 1
 
         # increment inotj
         # Note this loop overcounts for j=mutated
         # Diagonal is not used, so don't worry about i=j case
-        for j in xrange(1, readnts[0]): 
+        for j in range(1, readnts[0]): 
             inotj_arr[ i_index, readnts[j] ] += 1
 
         # correct for the over addition in inotj in above loop
-        for j in xrange(1, mutnts[0]):
+        for j in range(1, mutnts[0]):
             inotj_arr[ i_index, mutnts[j] ] -= 1
         
 
@@ -287,14 +287,14 @@ def fillIndependentProbArrays(str inputFile, int[:,::1] countArray,
             if r.read == NULL:
                 raise IndexError()
             elif r.stop >= maxindex:
-                print "Skipping line {0} with out-of-array-bounds = ({1}, {2})".format(linenum, r.start, r.stop)
+                print("Skipping line {0} with out-of-array-bounds = ({1}, {2})".format(linenum, r.start, r.stop))
                 continue
             
             fillReadMut(readnts, mutnts, r, window, mincoverage)
  
         except:
             skipped_reads += 1
-            #print "Skipping incorrectly formatted line {0}".format(linenum)
+            #print("Skipping incorrectly formatted line {0}".format(linenum))
             continue
         
 
@@ -305,7 +305,7 @@ def fillIndependentProbArrays(str inputFile, int[:,::1] countArray,
         
         # compute totalmuts
         totalmuts = 0
-        for i in xrange( r.stop - r.start + 1):
+        for i in range( r.stop - r.start + 1):
             totalmuts += r.muts[i]-r.subcode # will be 0 if no mut, 1 if mut
         
 
@@ -313,10 +313,10 @@ def fillIndependentProbArrays(str inputFile, int[:,::1] countArray,
             totalmuts = maxcount+1
         
 
-        for i in xrange(1, readnts[0]):
+        for i in range(1, readnts[0]):
             workingCountArray[readnts[i], totalmuts] +=1
 
-        for i in xrange(1, mutnts[0]):
+        for i in range(1, mutnts[0]):
         
             # need to subtract since mutated
             workingCountArray[mutnts[i], totalmuts] -= 1
@@ -334,7 +334,7 @@ def fillIndependentProbArrays(str inputFile, int[:,::1] countArray,
     
     # transfer workingCountArray to countArray
     countArray[:,:maxcount+1] = workingCountArray[:,:maxcount+1]
-    for i in xrange(maxindex+1):
+    for i in range(maxindex+1):
         countArray[i,maxcount] += workingCountArray[i,maxcount+1]
         
     countArray[:,maxcount+1:] = workingCountArray[:,maxcount+2:2*maxcount+3]
@@ -377,7 +377,7 @@ cdef READ parseLine(char* line, int fileformat):
     
 
     # pop off leader information so that token = r.start
-    for i in xrange(leadersize):
+    for i in range(leadersize):
         token = strsep(&running, " \t")
     
 
@@ -569,7 +569,7 @@ cdef void fillReadMut(int[:] readnts, int[:] mutnts, READ r, int window, int min
     # In other words, if read starts at nt 20 and window=3, then we need to increment
     # nt 18 and 19, which partially overlap 20
     # For window=1 this loop is not executed ( range(0,0,-1) = [] )
-    for i in xrange(step,0,-1):
+    for i in range(step,0,-1):
         
         rcount = 0
         mcount = 0
@@ -578,7 +578,7 @@ cdef void fillReadMut(int[:] readnts, int[:] mutnts, READ r, int window, int min
             continue
         
         # tabulate reads/muts for the window extending into the read
-        for j in xrange(window-i):
+        for j in range(window-i):
             rcount += r.read[j]-r.subcode 
             mcount += r.muts[j]-r.subcode
         
@@ -598,13 +598,13 @@ cdef void fillReadMut(int[:] readnts, int[:] mutnts, READ r, int window, int min
     # Reset rcount and mcount and start accumulating the sum for the first position
     rcount = 0
     mcount = 0
-    for i in xrange(step):
+    for i in range(step):
         rcount += r.read[i]-r.subcode
         mcount += r.muts[i]-r.subcode
         validpos += r.read[i]-r.subcode
     
 
-    for i in xrange( r.stop - r.start + 1 - step):
+    for i in range( r.stop - r.start + 1 - step):
         
         if i>0:
             rcount -= r.read[i-1]-r.subcode
@@ -632,7 +632,7 @@ cdef void fillReadMut(int[:] readnts, int[:] mutnts, READ r, int window, int min
     # handle the end of the read: muts/reads contribute the downstream window
     # this loop is not executed for window = 1 ( range(1,1) = [] )
     # i is carried over from end of above for loop
-    for j in xrange(1, window):
+    for j in range(1, window):
         
         if r.start+i+j > endseq:
             break
@@ -731,13 +731,13 @@ def fillMatrices_Old(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, 
             if r.read == NULL:
                 raise IndexError()
             elif r.stop > maxindex:
-                print "Line {0} outside array bounds :: read bounds = ({1}, {2})".format(linenum, r.start, r.stop)
+                print("Line {0} outside array bounds :: read bounds = ({1}, {2})".format(linenum, r.start, r.stop))
                 continue
             
             fillReadMut_Old(readnts, mutnts, r, window, phred_cutoff, accepted_events, mutseparation, maxdel)
  
         except:
-            print "Skipping incorrectly formatted line {0}".format(linenum)
+            print("Skipping incorrectly formatted line {0}".format(linenum))
             continue
         
         
@@ -748,34 +748,34 @@ def fillMatrices_Old(str inputFile, int[:,::1] read_arr, int[:, ::1] comut_arr, 
 
         # fill the read count matrix. Want to fill upper-right of matrix,
         # so traverse through arrays in reverse
-        for i in xrange(readnts[0], 0, -1):
+        for i in range(readnts[0], 0, -1):
         
             i_index = readnts[i]
             read_arr[ i_index, i_index ] += 1
             
-            for j in xrange(i-1, 0, -1):
+            for j in range(i-1, 0, -1):
                 read_arr[ i_index, readnts[j] ] += 1
                
         
         
         # fill in the mut matrices
-        for i in xrange(mutnts[0], 0, -1):
+        for i in range(mutnts[0], 0, -1):
         
             i_index = mutnts[i]
             comut_arr[ i_index, i_index ] += 1
             
-            for j in xrange(i-1, 0, -1):
+            for j in range(i-1, 0, -1):
                 comut_arr[i_index, mutnts[j] ] += 1
 
 
             # fill in inotj
             # Note this loop overcounts for j=mutated
             # Diagnol is not used, so don't worry about i=j case
-            for j in xrange(readnts[0], 0, -1): 
+            for j in range(readnts[0], 0, -1): 
                 inotj_arr[ i_index, readnts[j] ] += 1
 
             # correct for the over addition in inotj in above loop
-            for j in xrange(mutnts[0], 0, -1):
+            for j in range(mutnts[0], 0, -1):
                 inotj_arr[ i_index, mutnts[j] ] -= 1
         
 
@@ -861,13 +861,13 @@ cdef int fillReadMut_Old(int[:] readnts, int[:] mutnts, READ r, int window, int 
     if r.start < 1:
         end = -r.start -1 # -1 here corrects for 1-indexing correction in parseLine
     
-    for i in xrange(readlen-window+1, end, -1):
+    for i in range(readlen-window+1, end, -1):
         # if there is mutation in the window, assume its good
         # regardless if some nucs are missing data...
         
         boolval = 0
         counter = 0
-        for j in xrange(i, i+window):
+        for j in range(i, i+window):
             if rmut[j]:
                 boolval = 1
                 break
