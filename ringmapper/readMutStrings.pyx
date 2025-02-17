@@ -1,6 +1,5 @@
 #cython: boundscheck=False, wraparound=False
 
-
 ########################################################
 #   This code  contains optimized cython functions for reading
 #   classified mutations string from new and old shapemapper
