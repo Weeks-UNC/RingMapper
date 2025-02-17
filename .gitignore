@@ -3,3 +3,5 @@
 *.so
 *.o
 *egg-info*
+build/
+__pycache__/
