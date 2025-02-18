@@ -21,7 +21,7 @@ setup(
     name="RingMapper",
     packages=find_packages(include=["ringmapper", "ringmapper.*"]),
     package_dir={"ringmapper": "./"},
-    package_data={"ringmapper": ["*.pxd"]},
+    package_data={"ringmapper": ["ringmapper/*.pxd"]},
     include_package_data=True,
     ext_modules=ext,
     scripts=[
