@@ -28,4 +28,9 @@ setup(
         "./smccp/pairmapper.py",
         "./smccp/ShapeMapper_MMS0_Mut_Filter.py",
     ],
+    install_requires=[
+        "cython",
+        "numpy",
+        "StructureAnalysisTools @ git+ssh://git@github.com/psirving/StructureAnalysisTools.git@python3",
+    ],
 )
