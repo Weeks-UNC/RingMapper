@@ -21,7 +21,7 @@ setup(
     name="RingMapper",
     packages=find_packages(include=["smccp", "smccp.*"]),
     package_data={"": ["*.pxd"]},
-    # include_package_data=True,
+    include_package_data=True,
     ext_modules=ext,
     scripts=[
         "./smccp/ringmapper.py",
