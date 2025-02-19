@@ -11,22 +11,21 @@ from Cython.Build import cythonize
 import numpy
 
 ext = Extension(
-    name="ringmapper.readMutStrings",
-    sources=["ringmapper/readMutStrings.pyx"],
+    name="smccp.readMutStrings",
+    sources=["smccp/readMutStrings.pyx"],
     include_dirs=[numpy.get_include()],
 )
 ext = cythonize(ext, compiler_directives={"language_level": "2"})
 
 setup(
     name="RingMapper",
-    packages=find_packages(include=["ringmapper", "ringmapper.*"]),
-    package_dir={"ringmapper": "./"},
-    package_data={"ringmapper": ["ringmapper/*.pxd"]},
-    include_package_data=True,
+    packages=find_packages(include=["smccp", "smccp.*"]),
+    package_data={"": ["*.pxd"]},
+    # include_package_data=True,
     ext_modules=ext,
     scripts=[
-        "./ringmapper/ringmapper.py",
-        "./ringmapper/pairmapper.py",
-        "./ringmapper/ShapeMapper_MMS0_Mut_Filter.py",
+        "./smccp/ringmapper.py",
+        "./smccp/pairmapper.py",
+        "./smccp/ShapeMapper_MMS0_Mut_Filter.py",
     ],
 )

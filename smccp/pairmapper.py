@@ -23,8 +23,8 @@ import argparse, sys, itertools
 import numpy as np
 
 
-from ringmapper.ringmapper import RINGexperiment
-from StructureAnalysisTools.ReactivityProfile import ReactivityProfile
+from smccp.ringmapper import RINGexperiment
+from rnastruct.ReactivityProfile import ReactivityProfile
 
 
 class PairMapper(object):

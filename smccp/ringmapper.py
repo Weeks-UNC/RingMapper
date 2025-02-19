@@ -20,7 +20,7 @@
 
 import sys, argparse, itertools, math, time, os, random
 import numpy as np
-import readMutStrings  # cython code containing I/O funcs
+import smccp.readMutStrings as readMutStrings  # cython code containing I/O funcs
 
 
 class RINGexperiment(object):
